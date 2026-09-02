@@ -5,6 +5,10 @@ import type { Barbeiro } from '../lib/types';
 import { Sidebar, type Aba } from '../components/Sidebar';
 import { MeusHorarios } from '../components/MeusHorarios';
 import { Agenda } from './Agenda';
+import { Conversas } from './Conversas';
+import { Clientes } from './Clientes';
+import { Equipe } from './Equipe';
+import { Servicos } from './Servicos';
 
 export function Dashboard({ user }: { user: User }) {
   const [barbeiro, setBarbeiro] = useState<Barbeiro | null>(null);
@@ -47,6 +51,10 @@ export function Dashboard({ user }: { user: User }) {
 
       <div className="conteudo-painel">
         {aba === 'agenda' && <Agenda barbeiro={barbeiro} />}
+        {aba === 'conversas' && <Conversas />}
+        {aba === 'clientes' && <Clientes />}
+        {aba === 'equipe' && <Equipe />}
+        {aba === 'servicos' && <Servicos barbeiro={barbeiro} />}
         {aba === 'horarios' && (
           <>
             <header className="cabecalho-painel">

@@ -363,6 +363,85 @@ h3 {
   color: var(--aco-claro);
 }
 
+.campo-busca {
+  padding: 9px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie-elevada);
+  color: var(--gelo);
+  font-size: 14px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.nota-discreta {
+  font-size: 13px;
+  color: var(--aco);
+}
+
+.tabela-lista {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabela-lista th {
+  text-align: left;
+  font-size: 12px;
+  color: var(--aco);
+  font-weight: 500;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--borda-interna);
+}
+
+.tabela-lista td {
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--borda-interna);
+  font-size: 14px;
+}
+
+.lista-conversas {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.lista-conversas li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--borda-interna);
+}
+
+.conversa-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.conversa-nome {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.conversa-preview {
+  font-size: 13px;
+  color: var(--aco-claro);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 480px;
+}
+
+.conversa-quando {
+  font-size: 12px;
+  color: var(--aco);
+  flex-shrink: 0;
+}
+
 .chip {
   display: inline-flex;
   align-items: center;

@@ -965,6 +965,55 @@ passo anterior. Os outros 2 exigiram código de verdade:
 - **Confirmei que o painel web continua funcionando** com os dados reais — login como
   Igor mostra o horário real dele (seg-sex 9h-18h, sáb 9h-12h) certinho.
 
+### 2026-09-02 (continuação) — telas que faltavam no painel: Conversas, Clientes, Equipe, Serviços
+As 3 abas que estavam desabilitadas ("em breve") no design não eram bug de acesso —
+eram propositalmente não-clicáveis porque as telas nunca tinham sido construídas. Você
+pediu pra fazer as 3 e acrescentar uma de Serviços também.
+
+- **Clientes** (`pages/Clientes.tsx`): lista + busca por nome/telefone. Consulta direta
+  ao Supabase, sem filtro explícito de `barbearia_id` no código — a RLS já cuida disso
+  sozinha (é literalmente pra isso que ela existe).
+- **Equipe** (`pages/Equipe.tsx`): lista os barbeiros da barbearia, com chip mostrando
+  se já tem login configurado no painel. **De propósito não tem botão de "adicionar
+  membro"** — criar um barbeiro novo envolve criar uma conta no Supabase Auth, que não
+  dá pra fazer com segurança só com a anon key do frontend; continua sendo tarefa de
+  script/admin (tipo o `criar-usuario-teste.sh`).
+- **Serviços** (`pages/Servicos.tsx`): lista com edição inline (duração, preço,
+  "a partir de", ativo/inativo) e formulário pra adicionar serviço novo. Essa é a
+  versão "pelo painel" do que as tools de admin do WhatsApp (`atualizar_servico`,
+  `atualizar_valor_servico`) já faziam por conversa — agora tem os dois caminhos.
+  **Bug real que encontrei e corrigi:** o insert de serviço novo esqueceu de mandar
+  `barbearia_id` — a RLS bloqueou certinho ("new row violates row-level security
+  policy"), exatamente o comportamento esperado dela. Corrigido, testado de novo com
+  sucesso.
+- **Conversas** (`pages/Conversas.tsx` + backend novo): a mais complexa, porque o
+  histórico de mensagens do WhatsApp não mora no nosso Supabase — mora no Postgres
+  interno da Evolution API. Construí uma ponte de verdade em vez de deixar de fazer:
+  - `backend/src/api/auth.ts`: middleware que exige um token de sessão válido do
+    Supabase Auth **e** que a pessoa esteja cadastrada em `barbeiros` — mesmo
+    requisito de logar no painel. Sem isso, `/api/conversas` ficaria aberto pra
+    qualquer um que descobrisse a URL.
+  - `backend/src/api/conversas.ts`: cruza os clientes cadastrados (Supabase) com os
+    chats reais da Evolution API (`POST /chat/findChats`), filtra só conversa
+    individual (`@s.whatsapp.net`, sem grupo) que bate com telefone de cliente
+    conhecido, devolve última mensagem + quando.
+  - **Por que filtrar só clientes conhecidos, e não "todas as conversas":** o número
+    conectado hoje ainda é o seu WhatsApp pessoal (ver decisão de número dedicado) —
+    mostrar a lista de chats crua exporia grupos e contatos pessoais seus no painel.
+    Isso é uma proteção de privacidade, não só filtro de UX.
+  - CORS mínimo adicionado no backend (sem dependência nova) só pra origens locais
+    (`localhost`, `127.0.0.1`, rede local) — necessário porque agora o painel (porta
+    5174) chama o backend (porta 3001), origens diferentes.
+  - `painel-web/.env` ganhou `VITE_BACKEND_URL`.
+  - Testado de verdade: mostrou "Cliente Teste — Sem mensagens ainda" corretamente
+    (esse cliente fake nunca trocou mensagem real com o número conectado).
+- Sidebar (`components/Sidebar.tsx`) e Dashboard reescritos pra rotear as 6 abas
+  (Agenda, Conversas, Clientes, Equipe, Serviços, Horários) — nenhuma mais desabilitada.
+- Corrigi também pluralização (“1 cadastrados” → “1 cadastrado”) nas 3 telas novas.
+- **Testado com Playwright de novo:** login, as 4 telas carregando sem erro de console,
+  edição de serviço de ponta a ponta (editar preço existente + criar um novo), reset
+  do banco no final pra tirar os dados de teste.
+
 ### Como usar a stack do Supabase local no dia a dia
 ```bash
 cd /home/art/iabarber/database

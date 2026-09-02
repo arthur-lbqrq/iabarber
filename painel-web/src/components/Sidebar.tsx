@@ -1,9 +1,16 @@
 import { supabase } from '../lib/supabaseClient';
 import { Logo } from './Logo';
 
-export type Aba = 'agenda' | 'horarios';
+export type Aba = 'agenda' | 'conversas' | 'clientes' | 'equipe' | 'servicos' | 'horarios';
 
-const ITENS_EM_BREVE = ['Conversas', 'Clientes', 'Equipe'];
+const ITENS: { aba: Aba; rotulo: string }[] = [
+  { aba: 'agenda', rotulo: 'Agenda' },
+  { aba: 'conversas', rotulo: 'Conversas' },
+  { aba: 'clientes', rotulo: 'Clientes' },
+  { aba: 'equipe', rotulo: 'Equipe' },
+  { aba: 'servicos', rotulo: 'Serviços' },
+  { aba: 'horarios', rotulo: 'Horários' },
+];
 
 export function Sidebar({ aba, onMudarAba }: { aba: Aba; onMudarAba: (aba: Aba) => void }) {
   return (
@@ -14,20 +21,15 @@ export function Sidebar({ aba, onMudarAba }: { aba: Aba; onMudarAba: (aba: Aba) 
       </div>
 
       <nav className="nav-sidebar">
-        <button className={aba === 'agenda' ? 'ativo' : ''} onClick={() => onMudarAba('agenda')}>
-          Agenda
-        </button>
-        {ITENS_EM_BREVE.map((item) => (
-          <button key={item} disabled title="Em breve">
-            {item}
+        {ITENS.map((item) => (
+          <button
+            key={item.aba}
+            className={aba === item.aba ? 'ativo' : ''}
+            onClick={() => onMudarAba(item.aba)}
+          >
+            {item.rotulo}
           </button>
         ))}
-        <button
-          className={aba === 'horarios' ? 'ativo' : ''}
-          onClick={() => onMudarAba('horarios')}
-        >
-          Horários
-        </button>
       </nav>
 
       <button onClick={() => supabase.auth.signOut()} className="link-acao" style={{ textAlign: 'left' }}>
