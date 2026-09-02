@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #131317; }
+  a { color: #2D6CDF; text-decoration: none; }
+  a:hover { color: #5C8FEA; }
+  ::selection { background: rgba(15,191,160,.28); }
+</style>
+</helmet>
+
+<div style="background:#131317; color:#F5F5F3; font-family:Inter, sans-serif; padding:64px 56px 96px; display:flex; flex-direction:column; gap:96px">
+
+  <header style="display:flex; flex-direction:column; gap:20px; max-width:900px">
+    <div style="display:flex; align-items:center; gap:14px">
+      <svg width="44" height="44" viewBox="0 0 48 48" fill="none" style="display:block">
+        <rect x="0" y="0" width="48" height="48" rx="13" fill="#1B1B1F"></rect>
+        <path d="M17 10 H31 A9 9 0 0 1 40 19 V26 A9 9 0 0 1 31 35 H21 L12 42 L14 35 A9 9 0 0 1 8 26 V19 A9 9 0 0 1 17 10 Z" stroke="#F5F5F3" stroke-width="2.6" stroke-linejoin="round" fill="none"></path>
+        <path d="M16.5 20.5 L23.5 30.5" stroke="#0FBFA0" stroke-width="2.8" stroke-linecap="round"></path>
+        <path d="M32.5 15 L19.5 30.5" stroke="#0FBFA0" stroke-width="2.8" stroke-linecap="round"></path>
+        <circle cx="21.3" cy="27.6" r="1.5" fill="#131317"></circle>
+      </svg>
+      <span style="font-family:Sora, sans-serif; font-weight:600; font-size:19px; letter-spacing:-.02em">{{ nome }}</span>
+    </div>
+    <h1 style="font-family:Sora, sans-serif; font-weight:600; font-size:56px; line-height:1.02; letter-spacing:-.035em; margin:0; max-width:16ch; text-wrap:pretty">Identidade visual</h1>
+    <p style="margin:0; font-size:17px; line-height:1.6; color:#A9AEB6; max-width:62ch">Agendamento automático por WhatsApp para barbearias. A marca vende atendimento impecável e agenda cheia — a IA é o motor, nunca o argumento. Precisão sem frieza, moderno sem clichê de barbearia.</p>
+  </header>
+
+  <section style="display:flex; flex-direction:column; gap:28px">
+    <div style="display:flex; align-items:baseline; gap:16px; border-top:1px solid #2A2A31; padding-top:18px">
+      <span style="font-family:Sora,sans-serif; font-size:13px; font-weight:600; color:#0FBFA0; letter-spacing:.14em">01</span>
+      <h2 style="font-family:Sora,sans-serif; font-weight:500; font-size:26px; letter-spacing:-.02em; margin:0">Logotipo</h2>
+      <span style="font-size:14px; color:#6E7681">três tratamentos, um só desenho</span>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:20px">
+
+      <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:14px; padding:40px 32px; display:flex; flex-direction:column; gap:32px; justify-content:space-between">
+        <div style="display:flex; align-items:center; gap:16px">
+          <svg width="52" height="52" viewBox="0 0 48 48" fill="none" style="display:block; flex:none">
+            <path d="M17 10 H31 A9 9 0 0 1 40 19 V26 A9 9 0 0 1 31 35 H21 L12 42 L14 35 A9 9 0 0 1 8 26 V19 A9 9 0 0 1 17 10 Z" stroke="#F5F5F3" stroke-width="2.6" stroke-linejoin="round" fill="none"></path>
+            <path d="M16.5 20.5 L23.5 30.5" stroke="#0FBFA0" stroke-width="2.8" stroke-linecap="round"></path>
+            <path d="M32.5 15 L19.5 30.5" stroke="#0FBFA0" stroke-width="2.8" stroke-linecap="round"></path>
+            <circle cx="21.3" cy="27.6" r="1.5" fill="#1B1B1F"></circle>
+          </svg>
+          <span style="font-family:Sora,sans-serif; font-weight:600; font-size:34px; letter-spacing:-.035em; line-height:1">{{ nome }}</span>
+        </div>
+        <div style="font-size:13px; color:#6E7681; line-height:1.55">
+          <strong style="color:#F5F5F3; font-weight:600">Principal — Sora 600</strong><br>Assinatura horizontal. Uso padrão em site, painel, contrato e material impresso.
+        </div>
+      </div>
+
+      <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:14px; padding:40px 32px; display:flex; flex-direction:column; gap:32px; justify-content:space-between">
+        <div style="font-family:Sora,sans-serif; font-size:34px; letter-spacing:-.035em; line-height:1">
+          <span style="font-weight:600">Corte</span><span style="font-weight:400; color:#6E7681"> Certo</span>
+        </div>
+        <div style="font-size:13px; color:#6E7681; line-height:1.55">
+          <strong style="color:#F5F5F3; font-weight:600">Dois pesos — 600 / 400</strong><br>Wordmark isolado. A quebra de peso separa as duas palavras sem espaço extra nem cor.
+        </div>
+      </div>
+
+      <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:14px; padding:40px 32px; display:flex; flex-direction:column; gap:32px; justify-content:space-between">
+        <div style="display:flex; flex-direction:column; gap:12px">
+          <svg width="40" height="40" viewBox="0 0 48 48" fill="none" style="display:block">
+            <path d="M17 10 H31 A9 9 0 0 1 40 19 V26 A9 9 0 0 1 31 35 H21 L12 42 L14 35 A9 9 0 0 1 8 26 V19 A9 9 0 0 1 17 10 Z" stroke="#F5F5F3" stroke-width="2.6" stroke-linejoin="round" fill="none"></path>
+            <path d="M16.5 20.5 L23.5 30.5" stroke="#F5F5F3" stroke-width="2.8" stroke-linecap="round"></path>
+            <path d="M32.5 15 L19.5 30.5" stroke="#F5F5F3" stroke-width="2.8" stroke-linecap="round"></path>
+            <circle cx="21.3" cy="27.6" r="1.5" fill="#1B1B1F"></circle>
+          </svg>
+          <span style="font-family:Sora,sans-serif; font-weight:600; font-size:26px; letter-spacing:-.03em; line-height:1.05">Corte<br>Certo</span>
+        </div>
+        <div style="font-size:13px; color:#6E7681; line-height:1.55">
+          <strong style="color:#F5F5F3; font-weight:600">Empilhado, monocromático</strong><br>Para espaços estreitos, gravação, bordado e fundos coloridos. Uma cor só.
+        </div>
+      </div>
+    </div>
+
+    <sc-if value="{{ mostrarAlternativas }}" hint-placeholder-val="{{ true }}">
+      <div style="background:#17171B; border:1px dashed #2A2A31; border-radius:14px; padding:28px 32px; display:flex; flex-wrap:wrap; align-items:center; gap:48px">
+        <div style="font-size:13px; color:#6E7681; line-height:1.55; max-width:30ch">
+          <strong style="color:#F5F5F3; font-weight:600">Rota "IA explícita"</strong><br>O mesmo desenho aguenta os dois nomes. Recomendo <span style="color:#F5F5F3">Corte Certo</span>: promete o resultado, não a tecnologia.
+        </div>
+        <div style="font-family:Sora,sans-serif; font-size:30px; letter-spacing:-.035em; font-weight:600; color:#6E7681">Barber<span style="color:#0FBFA0">.IA</span></div>
+        <div style="font-family:Sora,sans-serif; font-size:30px; letter-spacing:-.035em; font-weight:600; color:#6E7681">Corte<span style="color:#0FBFA0">.IA</span></div>
+      </div>
+    </sc-if>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:28px">
+    <div style="display:flex; align-items:baseline; gap:16px; border-top:1px solid #2A2A31; padding-top:18px">
+      <span style="font-family:Sora,sans-serif; font-size:13px; font-weight:600; color:#0FBFA0; letter-spacing:.14em">02</span>
+      <h2 style="font-family:Sora,sans-serif; font-weight:500; font-size:26px; letter-spacing:-.02em; margin:0">Ícone e avatar</h2>
+      <span style="font-size:14px; color:#6E7681">lâmina + conversa: o corte fecha em confirmação</span>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:48px; align-items:flex-end">
+      <div style="display:flex; flex-direction:column; gap:14px">
+        <div style="width:176px; height:176px; background:linear-gradient(160deg,#26262D,#17171B); border:1px solid #2F2F38; display:grid; place-items:center; box-shadow:0 18px 40px rgba(0,0,0,.45); border-radius:44px">
+          <svg width="120" height="120" viewBox="0 0 48 48" fill="none" style="display:block">
+            <path d="M17 10 H31 A9 9 0 0 1 40 19 V26 A9 9 0 0 1 31 35 H21 L12 42 L14 35 A9 9 0 0 1 8 26 V19 A9 9 0 0 1 17 10 Z" stroke="#F5F5F3" stroke-width="2.6" stroke-linejoin="round" fill="none"></path>
+            <path d="M16.5 20.5 L23.5 30.5" stroke="#0FBFA0" stroke-width="2.8" stroke-linecap="round"></path>
+            <path d="M32.5 15 L19.5 30.5" stroke="#0FBFA0" stroke-width="2.8" stroke-linecap="round"></path>
+            <circle cx="21.3" cy="27.6" r="1.6" fill="#1B1B1F"></circle>
+          </svg>
+        </div>
+        <span style="font-size:12px; color:#6E7681">App icon · 176px</span>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-items:flex-end; gap:16px">
+          <div style="width:88px; height:88px; border-radius:22px; background:#1B1B1F; border:1px solid #2F2F38; display:grid; place-items:center">
+            <svg width="60" height="60" viewBox="0 0 48 48" fill="none"><path d="M17 10 H31 A9 9 0 0 1 40 19 V26 A9 9 0 0 1 31 35 H21 L12 42 L14 35 A9 9 0 0 1 8 26 V19 A9 9 0 0 1 17 10 Z" stroke="#F5F5F3" stroke-width="2.6" stroke-linejoin="round" fill="none"></path><path d="M16.5 20.5 L23.5 30.5" stroke="#0FBFA0" stroke-width="2.8" stroke-linecap="round"></path><path d="M32.5 15 L19.5 30.5" stroke="#0FBFA0" stroke-width="2.8" stroke-linecap="round"></path><circle cx="21.3" cy="27.6" r="1.5" fill="#1B1B1F"></circle></svg>
+          </div>
+          <div style="width:56px; height:56px; border-radius:50%; background:#1B1B1F; border:1px solid #2F2F38; display:grid; place-items:center">
+            <svg width="38" height="38" viewBox="0 0 48 48" fill="none"><path d="M17 10 H31 A9 9 0 0 1 40 19 V26 A9 9 0 0 1 31 35 H21 L12 42 L14 35 A9 9 0 0 1 8 26 V19 A9 9 0 0 1 17 10 Z" stroke="#F5F5F3" stroke-width="3" stroke-linejoin="round" fill="none"></path><path d="M16.5 20.5 L23.5 30.5" stroke="#0FBFA0" stroke-width="3.2" stroke-linecap="round"></path><path d="M32.5 15 L19.5 30.5" stroke="#0FBFA0" stroke-width="3.2" stroke-linecap="round"></path><circle cx="21.3" cy="27.6" r="1.6" fill="#1B1B1F"></circle></svg>
+          </div>
+          <div style="width:36px; height:36px; border-radius:50%; background:#1B1B1F; border:1px solid #2F2F38; display:grid; place-items:center">
+            <svg width="25" height="25" viewBox="0 0 48 48" fill="none"><path d="M17 10 H31 A9 9 0 0 1 40 19 V26 A9 9 0 0 1 31 35 H21 L12 42 L14 35 A9 9 0 0 1 8 26 V19 A9 9 0 0 1 17 10 Z" stroke="#F5F5F3" stroke-width="3.4" stroke-linejoin="round" fill="none"></path><path d="M16.5 20.5 L23.5 30.5" stroke="#0FBFA0" stroke-width="3.6" stroke-linecap="round"></path><path d="M32.5 15 L19.5 30.5" stroke="#0FBFA0" stroke-width="3.6" stroke-linecap="round"></path></svg>
+          </div>
+          <div style="width:24px; height:24px; border-radius:50%; background:#1B1B1F; display:grid; place-items:center">
+            <svg width="17" height="17" viewBox="0 0 48 48" fill="none"><path d="M17 10 H31 A9 9 0 0 1 40 19 V26 A9 9 0 0 1 31 35 H21 L12 42 L14 35 A9 9 0 0 1 8 26 V19 A9 9 0 0 1 17 10 Z" stroke="#F5F5F3" stroke-width="4" stroke-linejoin="round" fill="none"></path><path d="M16.5 20.5 L23.5 30.5" stroke="#0FBFA0" stroke-width="4.2" stroke-linecap="round"></path><path d="M32.5 15 L19.5 30.5" stroke="#0FBFA0" stroke-width="4.2" stroke-linecap="round"></path></svg>
+          </div>
+        </div>
+        <span style="font-size:12px; color:#6E7681">88 / 56 / 36 / 24px — o traço engrossa e o parafuso some abaixo de 36px</span>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; gap:14px">
+          <div style="width:72px; height:72px; border-radius:18px; background:#F5F5F3; display:grid; place-items:center">
+            <svg width="50" height="50" viewBox="0 0 48 48" fill="none"><path d="M17 10 H31 A9 9 0 0 1 40 19 V26 A9 9 0 0 1 31 35 H21 L12 42 L14 35 A9 9 0 0 1 8 26 V19 A9 9 0 0 1 17 10 Z" stroke="#1B1B1F" stroke-width="2.6" stroke-linejoin="round" fill="none"></path><path d="M16.5 20.5 L23.5 30.5" stroke="#1B1B1F" stroke-width="2.8" stroke-linecap="round"></path><path d="M32.5 15 L19.5 30.5" stroke="#1B1B1F" stroke-width="2.8" stroke-linecap="round"></path><circle cx="21.3" cy="27.6" r="1.5" fill="#F5F5F3"></circle></svg>
+          </div>
+          <div style="width:72px; height:72px; border-radius:18px; background:#0FBFA0; display:grid; place-items:center">
+            <svg width="50" height="50" viewBox="0 0 48 48" fill="none"><path d="M17 10 H31 A9 9 0 0 1 40 19 V26 A9 9 0 0 1 31 35 H21 L12 42 L14 35 A9 9 0 0 1 8 26 V19 A9 9 0 0 1 17 10 Z" stroke="#0B2B26" stroke-width="2.6" stroke-linejoin="round" fill="none"></path><path d="M16.5 20.5 L23.5 30.5" stroke="#0B2B26" stroke-width="2.8" stroke-linecap="round"></path><path d="M32.5 15 L19.5 30.5" stroke="#0B2B26" stroke-width="2.8" stroke-linecap="round"></path><circle cx="21.3" cy="27.6" r="1.5" fill="#0FBFA0"></circle></svg>
+          </div>
+        </div>
+        <span style="font-size:12px; color:#6E7681">Inversões permitidas</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:28px">
+    <div style="display:flex; align-items:baseline; gap:16px; border-top:1px solid #2A2A31; padding-top:18px">
+      <span style="font-family:Sora,sans-serif; font-size:13px; font-weight:600; color:#0FBFA0; letter-spacing:.14em">03</span>
+      <h2 style="font-family:Sora,sans-serif; font-weight:500; font-size:26px; letter-spacing:-.02em; margin:0">Cor em uso</h2>
+      <span style="font-size:14px; color:#6E7681">cada cor tem um cargo</span>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:16px">
+      <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:12px; overflow:hidden">
+        <div style="height:104px; background:#1B1B1F; border-bottom:1px solid #2A2A31"></div>
+        <div style="padding:16px 18px 18px; display:flex; flex-direction:column; gap:6px">
+          <span style="font-family:Sora,sans-serif; font-weight:600; font-size:15px">Grafite</span>
+          <span style="font-size:12px; color:#6E7681; font-variant-numeric:tabular-nums">#1B1B1F · 70% da superfície</span>
+          <span style="font-size:12px; color:#A9AEB6; line-height:1.5">Base do painel e de todo material escuro.</span>
+        </div>
+      </div>
+      <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:12px; overflow:hidden">
+        <div style="height:104px; background:#6E7681"></div>
+        <div style="padding:16px 18px 18px; display:flex; flex-direction:column; gap:6px">
+          <span style="font-family:Sora,sans-serif; font-weight:600; font-size:15px">Aço</span>
+          <span style="font-size:12px; color:#6E7681; font-variant-numeric:tabular-nums">#6E7681 · secundário</span>
+          <span style="font-size:12px; color:#A9AEB6; line-height:1.5">Texto de apoio, ícones inativos, divisórias.</span>
+        </div>
+      </div>
+      <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:12px; overflow:hidden">
+        <div style="height:104px; background:#0FBFA0"></div>
+        <div style="padding:16px 18px 18px; display:flex; flex-direction:column; gap:6px">
+          <span style="font-family:Sora,sans-serif; font-weight:600; font-size:15px">Verde-sinal</span>
+          <span style="font-size:12px; color:#6E7681; font-variant-numeric:tabular-nums">#0FBFA0 · só estado</span>
+          <span style="font-size:12px; color:#A9AEB6; line-height:1.5">Confirmado, concluído, presença. Nunca em botão.</span>
+        </div>
+      </div>
+      <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:12px; overflow:hidden">
+        <div style="height:104px; background:#2D6CDF"></div>
+        <div style="padding:16px 18px 18px; display:flex; flex-direction:column; gap:6px">
+          <span style="font-family:Sora,sans-serif; font-weight:600; font-size:15px">Azul-ação</span>
+          <span style="font-size:12px; color:#6E7681; font-variant-numeric:tabular-nums">#2D6CDF · só ação</span>
+          <span style="font-size:12px; color:#A9AEB6; line-height:1.5">Botões e links do painel. Nada mais.</span>
+        </div>
+      </div>
+      <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:12px; overflow:hidden">
+        <div style="height:104px; background:#F5F5F3"></div>
+        <div style="padding:16px 18px 18px; display:flex; flex-direction:column; gap:6px">
+          <span style="font-family:Sora,sans-serif; font-weight:600; font-size:15px">Gelo</span>
+          <span style="font-size:12px; color:#6E7681; font-variant-numeric:tabular-nums">#F5F5F3 · respiro</span>
+          <span style="font-size:12px; color:#A9AEB6; line-height:1.5">Fundo claro, conversa, impressos.</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:16px">
+      <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:12px; padding:24px; display:flex; flex-direction:column; gap:16px">
+        <span style="font-size:12px; color:#6E7681; letter-spacing:.1em; font-weight:600">ESTADOS</span>
+        <div style="display:flex; flex-wrap:wrap; gap:8px">
+          <span style="display:inline-flex; align-items:center; gap:7px; background:rgba(15,191,160,.13); color:#42D9BE; border:1px solid rgba(15,191,160,.3); border-radius:999px; padding:6px 12px; font-size:13px; font-weight:500">
+            <span style="width:6px; height:6px; border-radius:50%; background:#0FBFA0"></span>Confirmado</span>
+          <span style="display:inline-flex; align-items:center; gap:7px; background:rgba(110,118,129,.16); color:#A9AEB6; border:1px solid #34343D; border-radius:999px; padding:6px 12px; font-size:13px; font-weight:500">
+            <span style="width:6px; height:6px; border-radius:50%; background:#6E7681"></span>Aguardando</span>
+          <span style="display:inline-flex; align-items:center; gap:7px; background:rgba(224,122,95,.12); color:#E4907A; border:1px solid rgba(224,122,95,.28); border-radius:999px; padding:6px 12px; font-size:13px; font-weight:500">
+            <span style="width:6px; height:6px; border-radius:50%; background:#E07A5F"></span>Cancelado</span>
+        </div>
+        <span style="font-size:12px; color:#6E7681; line-height:1.5">Terracota #E07A5F entra só como alerta — é a única cor fora da paleta base, e existe para não usar vermelho puro.</span>
+      </div>
+      <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:12px; padding:24px; display:flex; flex-direction:column; gap:16px">
+        <span style="font-size:12px; color:#6E7681; letter-spacing:.1em; font-weight:600">AÇÕES</span>
+        <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">
+          <span style="background:#2D6CDF; color:#F5F5F3; border-radius:9px; padding:11px 18px; font-size:14px; font-weight:600; font-family:Sora,sans-serif; cursor:pointer" style-hover="background:#4680EA">Novo agendamento</span>
+          <span style="background:transparent; color:#F5F5F3; border:1px solid #3A3A44; border-radius:9px; padding:10px 17px; font-size:14px; font-weight:500; font-family:Sora,sans-serif; cursor:pointer" style-hover="border-color:#6E7681">Ver agenda</span>
+          <span style="color:#2D6CDF; font-size:14px; font-weight:500; cursor:pointer" style-hover="color:#5C8FEA">Configurar lembrete</span>
+        </div>
+        <span style="font-size:12px; color:#6E7681; line-height:1.5">Azul só clica. Verde só informa. Quando os dois aparecem juntos, ninguém confunde “confirmar” com “confirmado”.</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:28px">
+    <div style="display:flex; align-items:baseline; gap:16px; border-top:1px solid #2A2A31; padding-top:18px">
+      <span style="font-family:Sora,sans-serif; font-size:13px; font-weight:600; color:#0FBFA0; letter-spacing:.14em">04</span>
+      <h2 style="font-family:Sora,sans-serif; font-weight:500; font-size:26px; letter-spacing:-.02em; margin:0">Tipografia</h2>
+      <span style="font-size:14px; color:#6E7681">Sora 600 + Inter 400/500</span>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1.35fr 1fr; gap:20px">
+      <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:14px; padding:36px 34px; display:flex; flex-direction:column; gap:24px">
+        <span style="font-size:12px; color:#6E7681; letter-spacing:.1em; font-weight:600">TÍTULO · SORA</span>
+        <div style="font-family:Sora,sans-serif; display:flex; flex-direction:column; gap:14px">
+          <span style="font-weight:600; font-size:52px; letter-spacing:-.04em; line-height:1">Agenda cheia,<br>zero telefonema</span>
+          <span style="font-weight:500; font-size:26px; letter-spacing:-.02em; color:#A9AEB6">Título de seção · 500</span>
+          <span style="font-weight:600; font-size:16px; letter-spacing:.02em; color:#6E7681">RÓTULO E BOTÃO · 600</span>
+        </div>
+        <span style="font-size:12px; color:#6E7681; line-height:1.6">Geométrica, terminais retos, sem contraste de traço. Títulos sempre com tracking negativo (-.03 a -.04em) — é o que dá o ar de precisão.</span>
+      </div>
+      <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:14px; padding:36px 34px; display:flex; flex-direction:column; gap:24px">
+        <span style="font-size:12px; color:#6E7681; letter-spacing:.1em; font-weight:600">TEXTO · INTER</span>
+        <div style="display:flex; flex-direction:column; gap:16px">
+          <p style="margin:0; font-size:17px; line-height:1.6; color:#F5F5F3">Seu cliente manda mensagem, a agenda responde. Confirma o horário, lembra no dia e pergunta se ficou bom.</p>
+          <p style="margin:0; font-size:14px; line-height:1.65; color:#A9AEB6">Corpo secundário, 14/1.65. Usado em descrições de card, ajuda contextual e rodapé. Números sempre tabulares em tabela e métrica.</p>
+          <p style="margin:0; font-size:13px; line-height:1.5; color:#6E7681">Legenda e metadado, 13px, cor Aço.</p>
+        </div>
+        <span style="font-size:12px; color:#6E7681; line-height:1.6">Escala: 52 / 34 / 26 / 17 / 14 / 13 / 12.</span>
+      </div>
+    </div>
+
+    <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:14px; padding:28px 34px; display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:28px">
+      <div style="display:flex; flex-direction:column; gap:8px">
+        <span style="font-size:12px; color:#6E7681; letter-spacing:.1em; font-weight:600">VOZ — SIM</span>
+        <span style="font-size:15px; line-height:1.55; color:#F5F5F3">“Oi, Rafael! Tenho 9h30 e 11h amanhã. Qual fica melhor pra você?”</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px">
+        <span style="font-size:12px; color:#6E7681; letter-spacing:.1em; font-weight:600">VOZ — NÃO</span>
+        <span style="font-size:15px; line-height:1.55; color:#6E7681; text-decoration:line-through; text-decoration-color:#3A3A44">“Olá! Sou o assistente virtual da barbearia. Digite 1 para agendar.”</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px">
+        <span style="font-size:12px; color:#6E7681; letter-spacing:.1em; font-weight:600">REGRA</span>
+        <span style="font-size:15px; line-height:1.55; color:#A9AEB6">Primeiro nome sempre. Frase curta. Uma pergunta por mensagem. Nunca dizer que é um robô — e nunca fingir que não é, se perguntarem.</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:28px">
+    <div style="display:flex; align-items:baseline; gap:16px; border-top:1px solid #2A2A31; padding-top:18px">
+      <span style="font-family:Sora,sans-serif; font-size:13px; font-weight:600; color:#0FBFA0; letter-spacing:.14em">05</span>
+      <h2 style="font-family:Sora,sans-serif; font-weight:500; font-size:26px; letter-spacing:-.02em; margin:0">Aplicação</h2>
+      <span style="font-size:14px; color:#6E7681">painel do dono · conversa do cliente</span>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:20px; align-items:stretch">
+
+      <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:14px; overflow:hidden; display:flex; min-height:560px; flex:1 1 720px; min-width:0">
+        <aside style="width:196px; flex:none; background:#161619; border-right:1px solid #26262D; padding:22px 16px; display:flex; flex-direction:column; gap:26px">
+          <div style="display:flex; align-items:center; gap:10px; padding:0 6px">
+            <svg width="24" height="24" viewBox="0 0 48 48" fill="none"><path d="M17 10 H31 A9 9 0 0 1 40 19 V26 A9 9 0 0 1 31 35 H21 L12 42 L14 35 A9 9 0 0 1 8 26 V19 A9 9 0 0 1 17 10 Z" stroke="#F5F5F3" stroke-width="3.4" stroke-linejoin="round" fill="none"></path><path d="M16.5 20.5 L23.5 30.5" stroke="#0FBFA0" stroke-width="3.6" stroke-linecap="round"></path><path d="M32.5 15 L19.5 30.5" stroke="#0FBFA0" stroke-width="3.6" stroke-linecap="round"></path></svg>
+            <span style="font-family:Sora,sans-serif; font-weight:600; font-size:14px; letter-spacing:-.02em">{{ nome }}</span>
+          </div>
+          <nav style="display:flex; flex-direction:column; gap:2px">
+            <span style="display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; background:#22222A; color:#F5F5F3; font-size:14px; font-weight:500">Agenda</span>
+            <span style="display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; color:#8A9099; font-size:14px" style-hover="background:#1E1E24; color:#F5F5F3">Conversas</span>
+            <span style="display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; color:#8A9099; font-size:14px" style-hover="background:#1E1E24; color:#F5F5F3">Clientes</span>
+            <span style="display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; color:#8A9099; font-size:14px" style-hover="background:#1E1E24; color:#F5F5F3">Equipe</span>
+            <span style="display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; color:#8A9099; font-size:14px" style-hover="background:#1E1E24; color:#F5F5F3">Ajustes</span>
+          </nav>
+          <div style="margin-top:auto; display:flex; align-items:center; gap:9px; padding:10px; border-radius:9px; background:rgba(15,191,160,.09); border:1px solid rgba(15,191,160,.22)">
+            <span style="width:7px; height:7px; border-radius:50%; background:#0FBFA0; flex:none"></span>
+            <span style="font-size:12px; color:#42D9BE; line-height:1.35">WhatsApp conectado</span>
+          </div>
+        </aside>
+
+        <div style="flex:1; min-width:0; padding:26px 28px; display:flex; flex-direction:column; gap:22px">
+          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap">
+            <div style="display:flex; flex-direction:column; gap:4px">
+              <span style="font-family:Sora,sans-serif; font-weight:600; font-size:24px; letter-spacing:-.03em">Terça, 1 de setembro</span>
+              <span style="font-size:13px; color:#6E7681">Barbearia Corte Alto · Vila Madalena</span>
+            </div>
+            <span style="background:#2D6CDF; color:#F5F5F3; border-radius:9px; padding:10px 16px; font-size:13px; font-weight:600; font-family:Sora,sans-serif; cursor:pointer" style-hover="background:#4680EA">Novo agendamento</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px">
+            <div style="background:#202027; border:1px solid #2A2A31; border-radius:11px; padding:16px 16px 18px; display:flex; flex-direction:column; gap:8px">
+              <span style="font-size:12px; color:#6E7681">Hoje</span>
+              <span style="font-family:Sora,sans-serif; font-size:32px; font-weight:600; letter-spacing:-.04em; line-height:1; font-variant-numeric:tabular-nums">27</span>
+              <span style="font-size:12px; color:#8A9099">agendamentos</span>
+            </div>
+            <div style="background:#202027; border:1px solid #2A2A31; border-radius:11px; padding:16px 16px 18px; display:flex; flex-direction:column; gap:8px">
+              <span style="font-size:12px; color:#6E7681">Confirmados</span>
+              <span style="font-family:Sora,sans-serif; font-size:32px; font-weight:600; letter-spacing:-.04em; line-height:1; color:#0FBFA0; font-variant-numeric:tabular-nums">24</span>
+              <span style="font-size:12px; color:#8A9099">89% da agenda</span>
+            </div>
+            <div style="background:#202027; border:1px solid #2A2A31; border-radius:11px; padding:16px 16px 18px; display:flex; flex-direction:column; gap:8px">
+              <span style="font-size:12px; color:#6E7681">Faltas evitadas</span>
+              <span style="font-family:Sora,sans-serif; font-size:32px; font-weight:600; letter-spacing:-.04em; line-height:1; font-variant-numeric:tabular-nums">6</span>
+              <span style="font-size:12px; color:#8A9099">no mês, via lembrete</span>
+            </div>
+            <div style="background:#202027; border:1px solid #2A2A31; border-radius:11px; padding:16px 16px 18px; display:flex; flex-direction:column; gap:8px">
+              <span style="font-size:12px; color:#6E7681">Resposta média</span>
+              <span style="font-family:Sora,sans-serif; font-size:32px; font-weight:600; letter-spacing:-.04em; line-height:1; font-variant-numeric:tabular-nums">8s</span>
+              <span style="font-size:12px; color:#8A9099">24 h por dia</span>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:2px">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:10px">
+              <span style="font-family:Sora,sans-serif; font-size:15px; font-weight:600; letter-spacing:-.01em">Próximos horários</span>
+              <span style="font-size:13px; color:#2D6CDF; cursor:pointer" style-hover="color:#5C8FEA">Ver dia inteiro</span>
+            </div>
+            <div style="display:grid; grid-template-columns:58px 1fr 1.2fr auto; gap:14px; align-items:center; padding:12px 4px; border-top:1px solid #26262D; font-size:14px">
+              <span style="color:#6E7681; font-variant-numeric:tabular-nums">09:30</span>
+              <span style="font-weight:500">Rafael Marques</span>
+              <span style="color:#8A9099">Corte + barba · Diego</span>
+              <span style="display:inline-flex; align-items:center; gap:6px; background:rgba(15,191,160,.13); color:#42D9BE; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:500"><span style="width:5px; height:5px; border-radius:50%; background:#0FBFA0"></span>Confirmado</span>
+            </div>
+            <div style="display:grid; grid-template-columns:58px 1fr 1.2fr auto; gap:14px; align-items:center; padding:12px 4px; border-top:1px solid #26262D; font-size:14px">
+              <span style="color:#6E7681; font-variant-numeric:tabular-nums">10:15</span>
+              <span style="font-weight:500">Tiago Bastos</span>
+              <span style="color:#8A9099">Degradê · Alan</span>
+              <span style="display:inline-flex; align-items:center; gap:6px; background:rgba(15,191,160,.13); color:#42D9BE; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:500"><span style="width:5px; height:5px; border-radius:50%; background:#0FBFA0"></span>Confirmado</span>
+            </div>
+            <div style="display:grid; grid-template-columns:58px 1fr 1.2fr auto; gap:14px; align-items:center; padding:12px 4px; border-top:1px solid #26262D; font-size:14px">
+              <span style="color:#6E7681; font-variant-numeric:tabular-nums">11:00</span>
+              <span style="font-weight:500">Léo Andrade</span>
+              <span style="color:#8A9099">Corte · Diego</span>
+              <span style="display:inline-flex; align-items:center; gap:6px; background:rgba(110,118,129,.16); color:#A9AEB6; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:500"><span style="width:5px; height:5px; border-radius:50%; background:#6E7681"></span>Aguardando</span>
+            </div>
+            <div style="display:grid; grid-template-columns:58px 1fr 1.2fr auto; gap:14px; align-items:center; padding:12px 4px; border-top:1px solid #26262D; font-size:14px">
+              <span style="color:#6E7681; font-variant-numeric:tabular-nums">11:45</span>
+              <span style="font-weight:500">Marcos Vieira</span>
+              <span style="color:#8A9099">Barba · Alan</span>
+              <span style="display:inline-flex; align-items:center; gap:6px; background:rgba(15,191,160,.13); color:#42D9BE; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:500"><span style="width:5px; height:5px; border-radius:50%; background:#0FBFA0"></span>Confirmado</span>
+            </div>
+            <div style="display:grid; grid-template-columns:58px 1fr 1.2fr auto; gap:14px; align-items:center; padding:12px 4px; border-top:1px solid #26262D; font-size:14px">
+              <span style="color:#6E7681; font-variant-numeric:tabular-nums">13:30</span>
+              <span style="font-weight:500">Pedro Sant’Ana</span>
+              <span style="color:#8A9099">Corte + sobrancelha · Diego</span>
+              <span style="display:inline-flex; align-items:center; gap:6px; background:rgba(224,122,95,.12); color:#E4907A; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:500"><span style="width:5px; height:5px; border-radius:50%; background:#E07A5F"></span>Remarcou</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#1B1B1F; border:1px solid #2A2A31; border-radius:14px; padding:20px; display:flex; flex-direction:column; gap:14px; flex:0 1 340px; min-width:300px">
+        <div style="border-radius:12px; overflow:hidden; border:1px solid #26262D; display:flex; flex-direction:column; min-height:520px">
+          <div style="background:#1B1B1F; padding:12px 14px; display:flex; align-items:center; gap:11px; border-bottom:1px solid #26262D">
+            <div style="width:38px; height:38px; border-radius:50%; background:#26262D; display:grid; place-items:center; flex:none">
+              <svg width="26" height="26" viewBox="0 0 48 48" fill="none"><path d="M17 10 H31 A9 9 0 0 1 40 19 V26 A9 9 0 0 1 31 35 H21 L12 42 L14 35 A9 9 0 0 1 8 26 V19 A9 9 0 0 1 17 10 Z" stroke="#F5F5F3" stroke-width="3.4" stroke-linejoin="round" fill="none"></path><path d="M16.5 20.5 L23.5 30.5" stroke="#0FBFA0" stroke-width="3.6" stroke-linecap="round"></path><path d="M32.5 15 L19.5 30.5" stroke="#0FBFA0" stroke-width="3.6" stroke-linecap="round"></path></svg>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:2px; min-width:0">
+              <span style="font-family:Sora,sans-serif; font-size:14px; font-weight:600; letter-spacing:-.01em">Barbearia Corte Alto</span>
+              <span style="font-size:11px; color:#0FBFA0">responde na hora</span>
+            </div>
+          </div>
+
+          <div style="flex:1; background:#F5F5F3; padding:16px 14px; display:flex; flex-direction:column; gap:9px">
+            <span style="align-self:center; background:#E6E6E2; color:#6E7681; font-size:11px; padding:4px 10px; border-radius:7px; margin-bottom:4px">ontem</span>
+
+            <div style="align-self:flex-start; max-width:78%; background:#FFFFFF; color:#1B1B1F; border-radius:12px 12px 12px 3px; padding:9px 12px; font-size:14px; line-height:1.45; box-shadow:0 1px 1px rgba(27,27,31,.08)">Fala! Tem horário amanhã de manhã?</div>
+
+            <div style="align-self:flex-end; max-width:82%; background:#D6F4EC; color:#123C36; border-radius:12px 12px 3px 12px; padding:9px 12px; font-size:14px; line-height:1.45; box-shadow:0 1px 1px rgba(27,27,31,.08)">
+              Oi, Rafael! Tenho <strong style="font-weight:600">9h30</strong> e <strong style="font-weight:600">11h</strong> com o Diego. Qual fica melhor?
+              <span style="display:block; text-align:right; font-size:10px; color:#5E8A82; margin-top:3px">09:12 ✓✓</span>
+            </div>
+
+            <div style="align-self:flex-start; max-width:78%; background:#FFFFFF; color:#1B1B1F; border-radius:12px 12px 12px 3px; padding:9px 12px; font-size:14px; line-height:1.45; box-shadow:0 1px 1px rgba(27,27,31,.08)">9h30 tá ótimo</div>
+
+            <div style="align-self:flex-end; max-width:82%; background:#D6F4EC; color:#123C36; border-radius:12px 12px 3px 12px; padding:9px 12px; font-size:14px; line-height:1.45; box-shadow:0 1px 1px rgba(27,27,31,.08)">
+              Fechado. Corte + barba, amanhã 9h30 com o Diego. Se precisar mudar, é só me falar por aqui.
+              <span style="display:block; text-align:right; font-size:10px; color:#5E8A82; margin-top:3px">09:13 ✓✓</span>
+            </div>
+
+            <span style="align-self:center; background:#E6E6E2; color:#6E7681; font-size:11px; padding:4px 10px; border-radius:7px; margin:6px 0 2px">hoje</span>
+
+            <div style="align-self:flex-end; max-width:82%; background:#D6F4EC; color:#123C36; border-radius:12px 12px 3px 12px; padding:9px 12px; font-size:14px; line-height:1.45; box-shadow:0 1px 1px rgba(27,27,31,.08)">
+              Bom dia, Rafael! Seu horário é hoje às 9h30. Confirma pra mim?
+              <span style="display:block; text-align:right; font-size:10px; color:#5E8A82; margin-top:3px">07:00 ✓✓</span>
+            </div>
+
+            <div style="align-self:flex-start; display:flex; gap:7px">
+              <span style="background:#FFFFFF; color:#2D6CDF; border:1px solid #D8DDE4; border-radius:999px; padding:7px 14px; font-size:13px; font-weight:500; cursor:pointer" style-hover="background:#EEF3FC">Confirmar</span>
+              <span style="background:#FFFFFF; color:#6E7681; border:1px solid #D8DDE4; border-radius:999px; padding:7px 14px; font-size:13px; font-weight:500; cursor:pointer" style-hover="background:#ECECE8">Remarcar</span>
+            </div>
+          </div>
+
+          <div style="background:#F0F0EC; padding:10px 12px; display:flex; align-items:center; gap:10px; border-top:1px solid #E0E0DB">
+            <span style="flex:1; background:#FFFFFF; border-radius:999px; padding:9px 14px; font-size:13px; color:#9AA0A8">Mensagem</span>
+            <span style="width:34px; height:34px; border-radius:50%; background:#0FBFA0; display:grid; place-items:center; flex:none; cursor:pointer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3.5 12 L20 12 M13.5 5.5 L20 12 L13.5 18.5" stroke="#0B2B26" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </span>
+          </div>
+        </div>
+        <span style="font-size:12px; color:#6E7681; line-height:1.55">O avatar é o ícone puro sobre grafite — reconhecível no tamanho de foto de contato. Bolha da marca em verde-sinal a 12% sobre gelo: soa a WhatsApp sem imitar o verde do app.</span>
+      </div>
+    </div>
+  </section>
+
+  <footer style="border-top:1px solid #2A2A31; padding-top:24px; display:flex; flex-wrap:wrap; gap:40px; font-size:13px; color:#6E7681; line-height:1.6">
+    <div style="max-width:34ch"><strong style="color:#F5F5F3; font-weight:600; display:block; margin-bottom:6px">Nunca</strong>Navalha, poste, tesoura realista, serifa, script, marrom/couro, gradiente roxo-azul, robô, circuito.</div>
+    <div style="max-width:34ch"><strong style="color:#F5F5F3; font-weight:600; display:block; margin-bottom:6px">Sempre</strong>Traço único e geométrico, cantos de 8–13px, azul só para clicar, verde só para confirmar, e uma frase curta no lugar de duas.</div>
+    <div style="max-width:34ch"><strong style="color:#F5F5F3; font-weight:600; display:block; margin-bottom:6px">Área de respiro</strong>Ao redor do logo, sempre a altura da bolha do ícone. Tamanho mínimo do ícone: 20px.</div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;nome&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Corte Certo&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;mostrarAlternativas&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      nome: this.props.nome ?? "Corte Certo",
+      mostrarAlternativas: this.props.mostrarAlternativas ?? true
+    };
+  }
+}
+</script>
+</body>
+</html>

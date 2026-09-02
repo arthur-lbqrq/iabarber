@@ -1,0 +1,24 @@
+# Node
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+
+# Env / segredos
+.env
+.env.local
+.env.*.local
+
+# Evolution API (dados locais, não versionar)
+evolution-api/.env
+evolution-api/tmp/
+
+# Supabase CLI (estado local, não versionar)
+database/supabase/.temp/
+database/supabase/.branches/
+
+# Editor / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
