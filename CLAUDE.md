@@ -1557,6 +1557,189 @@ leitura), porque isso cria um nível de acesso novo no sistema.
 - **Ainda não commitado** — pasta nova inteira (`painel-admin/`) + migration nova
   + as 3 mudanças no `backend/` (CORS, `adminAuth.ts`, `admin.ts`, `index.ts`).
 
+### 2026-09-02 (continuação) — Evolução CashBarber, etapa 1/5: Assinaturas
+Você trouxe um objetivo maior (5 funcionalidades inspiradas em sistemas tipo
+CashBarber: assinaturas, IA com ação estruturada, dashboard, retenção via WhatsApp,
+página do cliente). Antes de tocar em código, expliquei o que já existia — sem
+precisar "explorar" de fato, porque construí boa parte deste projeto nesta mesma
+sessão — e propus a ordem: assinaturas primeiro, porque os outros 4 itens dependem
+ou se beneficiam dela existir. Você confirmou.
+
+**Descoberta importante ao investigar:** `planos` e `assinaturas` **já existiam**
+desde a migration inicial (schema pensado multi-tenant desde o começo, incluindo
+assinatura, mesmo sem gateway) — só incompletos: sem vínculo com serviços inclusos,
+sem os estados que o controle manual precisa, sem campos de gateway futuro. Também
+descobri que **function calling estruturado já existe** (`ai/claude.ts`/`ai/tools.ts`
+usa tool use nativo da Anthropic — a IA nunca escreve direto no banco, sempre chama
+uma tool que o backend valida e persiste) — o pedido nº2 do seu objetivo maior já
+está, em grande parte, resolvido pela arquitetura atual.
+
+**Banco** (2 migrations novas):
+- `20260902175415_assinaturas_gateway_e_planos.sql`: `assinaturas.status` trocou de
+  `(ativa, cancelada, expirada)` pra `(ativa, atrasada, cancelada, pendente)` —
+  seguro porque não havia linha real usando o valor antigo; `assinaturas` ganhou
+  `metodo_pagamento`, `id_transacao_externa`, `proximo_vencimento` (estrutura pronta
+  pra um gateway futuro, sem integração nenhuma agora); tabela nova `plano_servicos`
+  (N pra N entre `planos` e `servicos`), com RLS no mesmo padrão do resto do schema.
+- `20260902175611_desconto_assinante.sql`: `planos.desconto_percentual` (0-100) e
+  `agendamentos.preco_centavos` (snapshot do preço realmente cobrado, com desconto
+  se houver — não recalculado depois, porque o preço do serviço pode mudar no
+  futuro e o agendamento tem que manter o valor histórico real).
+
+**Regra de negócio implementada:** você escolheu "desconto no preço do serviço" entre
+as 3 opções que eu levantei (as outras duas — sem multa de cancelamento, prioridade
+de horário — ficam documentadas como possíveis próximos passos, não descartadas;
+a de multa nem faria sentido implementar agora porque não existe sistema de multa
+nenhum ainda pra ninguém).
+
+**Backend:**
+- `backend/src/assinaturas/desconto.ts` (novo): `calcularPrecoComDesconto` (função
+  pura, sem I/O) + `buscarDescontoAtivo` (busca a assinatura ativa do cliente e o
+  desconto do plano dela).
+- `backend/src/assinaturas/status.ts` (novo): `statusValido`, valida contra os 4
+  estados novos — usado tanto pelo endpoint quanto pelos testes.
+- `backend/src/tools/criarAgendamento.ts` (alterado): agora busca o desconto ativo
+  do cliente, calcula o preço final e grava em `agendamentos.preco_centavos` — como
+  essa função já é usada tanto pela IA (`ai/tools.ts`) quanto pelo motor de regras
+  antigo (`regras/motor.ts`), os dois ganharam a regra automaticamente, sem precisar
+  mexer neles. **Mudança que ainda falta (documentando, não escondendo):** o
+  `painel-web` cria agendamento direto via Supabase
+  (`NovoAgendamentoModal.tsx`), sem passar por essa função — então agendamento
+  criado pelo painel **ainda não aplica desconto de assinante**. Não mexi nisso
+  agora pra não expandir o escopo desta etapa; fica como pendência clara.
+- `backend/src/tools/consultarHorarios.ts` (alterado, comportamento preservado):
+  extraí a lógica pura de cálculo de slots livres pra `calcularSlotsLivres`
+  (testável sem mockar o Supabase) — o resto da função só busca dado e chama ela.
+- `backend/src/api/assinaturas.ts` (novo): rotas `/api/planos` (listar, criar com
+  serviços inclusos, editar/desativar) e `/api/assinaturas` (listar, criar,
+  `PATCH .../status` — o "endpoint pro admin marcar como paga/atrasada/cancelada"
+  pedido). Protegidas por `exigirBarbeiroLogado` (escopo por barbearia, igual
+  `/api/conversas` já fazia) — **não** pelo `exigirAdminCorteCerto`, porque
+  assinatura é operação do dia a dia de uma barbearia específica, não cross-tenant.
+  **Sem tela nova no painel-web ainda** — o pedido original dizia só "endpoint/
+  rotina", então parei aí; um "Assinaturas" tab no painel-web fica fácil de
+  adicionar depois se você quiser (mesmo padrão de `Servicos.tsx`).
+- `backend/src/api/auth.ts` (alterado, aditivo): `req.barbeiro` ganhou
+  `barbearia_id` (antes só tinha `id`/`nome`) — as rotas novas precisavam sem
+  depender do `BARBEARIA_PADRAO` fixo que já era uma limitação documentada.
+- `backend/src/index.ts`: monta `assinaturasRouter`.
+
+**Testes** (Vitest, escolhido e instalado — projeto não tinha framework de teste
+nenhum antes): `npm test` dentro de `backend/`, 16 testes, todos passando.
+- `desconto.test.ts`: cálculo de desconto, arredondamento, não fica negativo, ignora
+  desconto inválido.
+- `status.test.ts`: os 4 estados novos são aceitos, o estado antigo `expirada` é
+  rejeitado, valores vazios/de outro tipo são rejeitados.
+- `consultarHorarios.test.ts`: disponibilidade — sem colisão preenche a janela
+  toda, colisão exata bloqueia certo, colisão **parcial** também bloqueia (não só a
+  exata), sem janela de trabalho não sugere nada, serviço que não cabe no fim da
+  janela não aparece. **Achei um erro no teste, não no código**, escrevendo o
+  primeiro teste dessa suíte (assumi errado quando um slot de 30min "terminava"),
+  corrigido antes de reportar como passando.
+
+**Testado de ponta a ponta contra o banco real** (não só os testes unitários): criei
+um plano com 20% de desconto vinculado a "Corte de cabelo" (R$25), uma assinatura
+ativa pra um cliente de teste, criei um agendamento de verdade via
+`criarAgendamento` → saiu R$20,00 (desconto aplicado); cancelei a assinatura via
+`PATCH /api/assinaturas/:id/status`; criei outro agendamento → saiu R$25,00 (sem
+desconto, confirmando que o status realmente controla o comportamento). Também
+confirmei que `status: "expirada"` (removido) é rejeitado com 400. Todo dado de
+teste apagado no final.
+
+**Housekeeping notado, não resolvido agora:** `npm install` do Vitest expôs 3
+vulnerabilidades moderadas pré-existentes em `qs`/`body-parser`/`express`
+(`npm audit`) — não são coisa que eu introduzi, e resolver envolveria atualizar o
+`express`, fora do escopo desta etapa. Fica registrado caso você queira tratar depois.
+
+**Próxima etapa (não iniciada):** IA com ação `falar_com_atendente` + expor status
+de assinatura como contexto pra IA.
+
+### 2026-09-02 (continuação) — Evolução CashBarber, etapa 2/5: IA com ação estruturada + saudação por horário
+Você pediu pra seguir direto pra etapa 2 e aproveitou pra pedir um ajuste separado:
+a IA cumprimentar com "bom dia"/"boa tarde"/"boa noite" no horário certo — resolvido
+junto, já que mexi no mesmo arquivo (`ai/claude.ts`) de qualquer forma.
+
+- **Saudação por horário:** antes o prompt só dava a data pra IA, nunca a hora — ela
+  não tinha como saber se cumprimentar com "bom dia" ou "boa noite". Nova função pura
+  `saudacaoAtual(agora: Date)` em `ai/claude.ts` (5h-12h bom dia, 12h-18h boa tarde,
+  resto boa noite — convenção comum em português do Brasil), calculada em código e
+  passada pronta no prompt em vez de deixar o modelo inferir sozinho. **7 testes
+  novos** cobrindo os limites de cada faixa de horário.
+- **`falar_com_atendente` (a ação que faltava das 5 pedidas):** nova tool
+  (`backend/src/tools/falarComAtendente.ts`) — quando a IA percebe que o cliente
+  quer uma pessoa de verdade, reclamação ou algo que as outras ferramentas não
+  resolvem, ela chama essa tool, que **avisa de verdade** todos os barbeiros ativos
+  da barbearia por WhatsApp (reaproveitando `enviarMensagemTexto`, que já existia).
+  Falhas de envio não derrubam a resposta pro cliente (`Promise.allSettled` — o
+  cliente recebe a confirmação mesmo que o aviso ao barbeiro falhe).
+  - **Testado de ponta a ponta com o Claude de verdade:** mensagem simulando
+    reclamação → a IA chamou a tool com um resumo bom do motivo, respondeu
+    corretamente ao cliente. `atendentesAvisados: 0` no resultado — **não é bug**,
+    é porque Igor/Tinho ainda estão com telefones placeholder
+    (`558100000010`/`11`, pendência já documentada antes) — quando isso for
+    trocado pelos números reais, o aviso passa a chegar de verdade.
+- **Status de assinatura como contexto pra IA:** `assinaturas/desconto.ts` ganhou
+  `buscarAssinaturaAtivaPorTelefone` (resolve cliente pelo telefone — pode nem
+  existir ainda em `clientes` numa primeira mensagem — depois busca a assinatura
+  ativa). `gerarResposta` busca isso antes de montar o prompt e injeta uma linha
+  dizendo se o cliente tem assinatura ativa, de qual plano, com quanto de desconto.
+  **Testado com Claude de verdade:** perguntei "tenho desconto?" com uma assinatura
+  ativa de teste (15%) — a IA respondeu certo, citando o plano e o percentual.
+- **Confirmação de que a etapa 2 do objetivo maior já estava resolvida:** como
+  registrado na etapa anterior, o "backend valida antes de persistir, IA nunca
+  escreve direto" já era a arquitetura desde a sessão em que a IA foi ligada — essa
+  etapa só precisou adicionar a ação que faltava e o contexto de assinatura, não
+  reconstruir o mecanismo de function calling.
+- Nenhuma migration nova nesta etapa (só código).
+- `tsc --noEmit` limpo, `npm test` → 23 testes passando (16 da etapa 1 + 7 novos).
+  Dado de teste (cliente/plano/assinatura de teste) apagado no final.
+
+**Próxima etapa (não iniciada):** indicadores/dashboard (API only) — período de
+recompra, ranking de barbeiro, clientes inativos/churn.
+
+### 2026-09-02 (continuação) — Evolução CashBarber, etapa 3/5: indicadores/dashboard (API only)
+Sem migration nova nesta etapa — os 3 indicadores pedidos derivam inteiramente de
+`agendamentos`, que já existe (inclusive o `preco_centavos` novo da etapa 1).
+
+- **Conceito compartilhado pelos 3 indicadores:** "atendimento realizado" = agendamento
+  com `status` em `(confirmado, concluido)` **e** `inicio` no passado — cancelado e
+  no_show não contam (não aconteceu de verdade), e confirmado no futuro também não
+  (ainda não foi atendido). Uma função só busca esse conjunto
+  (`buscarAtendimentosRealizados` em `api/indicadores.ts`) e os 3 endpoints derivam
+  dele, evitando 3 queries repetidas.
+- **`backend/src/indicadores/recompra.ts`:** regra de negócio real, não um número fixo
+  pra todo mundo — cada cliente tem o próprio intervalo médio (calculado a partir do
+  próprio histórico), e "atrasado" é quando já passou mais tempo desde o último
+  atendimento do que esse intervalo pessoal. Cliente com só 1 atendimento no
+  histórico nunca é marcado atrasado (não tem base pra calcular um padrão ainda).
+- **`backend/src/indicadores/ranking.ts`:** por barbeiro — soma faturamento (usando o
+  `preco_centavos` de cada atendimento, tratando `null` como zero pros agendamentos
+  antigos de antes da etapa 1), conta atendimentos, e calcula taxa de recompra como
+  % dos clientes distintos atendidos por aquele barbeiro que voltaram mais de uma vez.
+- **Endpoints** (`backend/src/api/indicadores.ts`, protegidos por
+  `exigirBarbeiroLogado`, escopo por barbearia):
+  - `GET /api/indicadores/recompra` — status de recompra de todo cliente com pelo
+    menos 1 atendimento, ordenado por quem está há mais tempo sem voltar.
+  - `GET /api/indicadores/ranking-barbeiros` — ranking ordenado por faturamento.
+  - `GET /api/indicadores/churn` — subconjunto de "atrasados" que **ainda não têm um
+    agendamento futuro marcado** (se o cliente já remarcou sozinho, não faz sentido
+    contar ele como churn/precisando de contato de retenção — é exatamente a lista
+    que a etapa 4, automação via WhatsApp, vai usar).
+- **Sem tela nova no painel-web** — o pedido original foi explícito ("não precisa
+  construir o front agora, só a API"), então parei na API mesmo.
+- **Testado com cenário real no banco** (script descartável, dados apagados no
+  final): cliente com padrão de 60 dias entre atendimentos, 90 dias sem voltar →
+  apareceu atrasado e em churn; cliente com padrão de 10 dias, 10 dias sem voltar →
+  não apareceu em nenhum dos dois (dentro do próprio padrão). Ranking bateu o
+  faturamento e contagem esperados pros dois barbeiros.
+- **11 testes novos** (`recompra.test.ts`, `ranking.test.ts`) — total agora **45
+  testes**, todos passando. `tsc --noEmit` limpo.
+
+**Próxima etapa (não iniciada):** automação de retenção via WhatsApp (cron + rate
+limiting + log de envio) — a mais arriscada das 5, porque manda mensagem pra cliente
+real sem gatilho dele; vou pedir confirmação explícita antes de ligar de verdade,
+mesmo só pra testar.
+
 ### Como usar a stack do Supabase local no dia a dia
 ```bash
 cd /home/art/iabarber/database

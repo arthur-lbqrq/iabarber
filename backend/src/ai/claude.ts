@@ -5,6 +5,7 @@ import { supabase } from '../supabase/client.js';
 import { BARBEARIA_PADRAO } from '../config/barbearia.js';
 import { buscarBarbeiroPorTelefone } from '../tools/buscarBarbeiroPorTelefone.js';
 import { FERRAMENTAS_CLIENTE, FERRAMENTAS_ADMIN, executarFerramenta } from './tools.js';
+import { buscarAssinaturaAtivaPorTelefone, type AssinaturaAtivaInfo } from '../assinaturas/desconto.js';
 
 const anthropic = new Anthropic({ apiKey: env.anthropicApiKey });
 
@@ -39,18 +40,41 @@ function salvarHistorico(telefone: string, mensagens: MessageParam[]): void {
   historicoPorTelefone.set(telefone, recorte);
 }
 
-async function montarSystemPromptCliente(nomeBarbearia: string): Promise<string> {
-  const agora = new Date();
+// Convenção comum em português do Brasil: 5h-12h bom dia, 12h-18h boa tarde, resto
+// boa noite. Calculado em código e passado pronto pro prompt — mais confiável do que
+// deixar o modelo inferir a saudação certa a partir só da hora numérica.
+export function saudacaoAtual(agora: Date): string {
+  const hora = agora.getHours();
+  if (hora >= 5 && hora < 12) return 'Bom dia';
+  if (hora >= 12 && hora < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
+
+function contextoDeDataHora(agora: Date): string {
   const dataHoje = agora.toLocaleDateString('pt-BR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
+  const horaAgora = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return `Hoje é ${dataHoje}, agora são ${horaAgora} (fuso horário de Brasília). Saudação certa
+pra esse horário: "${saudacaoAtual(agora)}" — use "${saudacaoAtual(agora)}" (não "oi"/"olá") quando
+for natural cumprimentar (início da conversa, por exemplo), sem repetir em toda mensagem.`;
+}
+
+async function montarSystemPromptCliente(nomeBarbearia: string, statusAssinatura: AssinaturaAtivaInfo | null): Promise<string> {
+  const agora = new Date();
+
+  const linhaAssinatura = statusAssinatura
+    ? `Este cliente TEM assinatura ativa (plano "${statusAssinatura.planoNome}"), com ${statusAssinatura.descontoPercentual}% de desconto nos serviços — o desconto já sai aplicado automaticamente ao agendar, não precisa calcular na mão. Pode mencionar isso se for relevante (ex: se perguntarem sobre preço ou assinatura).`
+    : 'Este cliente não tem assinatura ativa hoje. Se perguntar sobre planos/assinatura, diga que a barbearia tem planos disponíveis, mas você ainda não tem como cadastrar uma assinatura nova pelo WhatsApp — é preciso falar com o barbeiro.';
 
   return `Você é o Bento, assistente de agendamento da ${nomeBarbearia}, respondendo
-pelo WhatsApp. Hoje é ${dataHoje} (fuso horário de Brasília). A barbearia tem dois
-profissionais: Igor e Tinho.
+pelo WhatsApp. ${contextoDeDataHora(agora)} A barbearia tem dois profissionais: Igor
+e Tinho.
+
+${linhaAssinatura}
 
 Tom de voz: direto, caloroso, confiável. Chame a pessoa pelo primeiro nome quando souber.
 Frases curtas. Uma pergunta por mensagem. Nunca diga que é um robô, mas também nunca finja
@@ -66,21 +90,18 @@ Regras:
 - "cancelar_agendamento" cancela o próximo agendamento confirmado do cliente atual —
   confirme com a pessoa antes de cancelar.
 - Se um horário pedido não estiver livre, ofereça as opções mais próximas que estiverem.
+- Use "falar_com_atendente" quando o cliente pedir explicitamente uma pessoa, tiver uma
+  reclamação, dúvida complexa, ou pedir algo que você não consegue resolver com as outras
+  ferramentas — avisa o cliente que um atendente foi chamado e vai responder em breve.
 - Responda sempre em português do Brasil, em texto simples (sem markdown), curto o
   suficiente pra uma mensagem de WhatsApp.`;
 }
 
 function montarSystemPromptAdmin(nomeBarbearia: string, nomeAdmin: string): string {
   const agora = new Date();
-  const dataHoje = agora.toLocaleDateString('pt-BR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
 
   return `Você é o Bento, falando agora com ${nomeAdmin}, que é um dos barbeiros/admins
-da ${nomeBarbearia} — não um cliente. Hoje é ${dataHoje} (fuso horário de Brasília).
+da ${nomeBarbearia} — não um cliente. ${contextoDeDataHora(agora)}
 
 Neste modo você ajuda a gerenciar a barbearia: ver a agenda completa, mudar horário de
 funcionamento, mudar dados ou preço de um serviço.
@@ -114,7 +135,10 @@ export async function gerarResposta(
 
   const system = admin
     ? montarSystemPromptAdmin(nomeBarbearia, admin.nome)
-    : await montarSystemPromptCliente(nomeBarbearia);
+    : await montarSystemPromptCliente(
+        nomeBarbearia,
+        await buscarAssinaturaAtivaPorTelefone(barbeariaId, telefoneRemetente),
+      );
 
   const ferramentas = admin ? FERRAMENTAS_ADMIN : FERRAMENTAS_CLIENTE;
   const contexto = admin

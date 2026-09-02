@@ -1,4 +1,5 @@
 import { supabase } from '../supabase/client.js';
+import { buscarDescontoAtivo, calcularPrecoComDesconto } from '../assinaturas/desconto.js';
 
 const CODIGO_POSTGRES_CONFLITO_HORARIO = '23P01'; // exclusion_violation
 
@@ -12,7 +13,7 @@ interface CriarAgendamentoParams {
 }
 
 export type ResultadoCriarAgendamento =
-  | { ok: true; agendamentoId: string }
+  | { ok: true; agendamentoId: string; precoCentavos: number }
   | { ok: false; motivo: 'horario_ocupado' | 'servico_nao_encontrado' };
 
 export async function criarAgendamento({
@@ -25,7 +26,7 @@ export async function criarAgendamento({
 }: CriarAgendamentoParams): Promise<ResultadoCriarAgendamento> {
   const { data: servico, error: erroServico } = await supabase
     .from('servicos')
-    .select('duracao_minutos')
+    .select('duracao_minutos, preco_centavos')
     .eq('id', servicoId)
     .single();
   if (erroServico || !servico) {
@@ -45,6 +46,9 @@ export async function criarAgendamento({
     .single();
   if (erroCliente || !cliente) throw erroCliente;
 
+  const descontoPercentual = await buscarDescontoAtivo(barbeariaId, cliente.id);
+  const precoCentavos = calcularPrecoComDesconto(servico.preco_centavos, descontoPercentual);
+
   const { data: agendamento, error: erroAgendamento } = await supabase
     .from('agendamentos')
     .insert({
@@ -54,6 +58,7 @@ export async function criarAgendamento({
       servico_id: servicoId,
       inicio: inicio.toISOString(),
       fim: fim.toISOString(),
+      preco_centavos: precoCentavos,
     })
     .select('id')
     .single();
@@ -65,5 +70,5 @@ export async function criarAgendamento({
     throw erroAgendamento;
   }
 
-  return { ok: true, agendamentoId: agendamento.id };
+  return { ok: true, agendamentoId: agendamento.id, precoCentavos };
 }

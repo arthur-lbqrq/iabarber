@@ -52,9 +52,25 @@ export async function consultarHorariosDisponiveis({
   if (erroAgendamentos) throw erroAgendamentos;
 
   const ocupados = (agendamentos ?? []) as Agendamento[];
-  const duracaoMs = servico.duracao_minutos * 60_000;
-  const passoMs = INTERVALO_SLOTS_MINUTOS * 60_000;
+  return calcularSlotsLivres(data, janelas, ocupados, servico.duracao_minutos);
+}
 
+interface Janela {
+  hora_inicio: string;
+  hora_fim: string;
+}
+
+// Extraída da função acima pra ser testável sem precisar mockar o Supabase — é a
+// regra de negócio de verdade (quais horários colidem com agendamentos existentes),
+// o resto da função original é só busca de dado.
+export function calcularSlotsLivres(
+  data: string,
+  janelas: Janela[],
+  ocupados: Agendamento[],
+  duracaoMinutos: number,
+): string[] {
+  const duracaoMs = duracaoMinutos * 60_000;
+  const passoMs = INTERVALO_SLOTS_MINUTOS * 60_000;
   const slotsDisponiveis: string[] = [];
 
   for (const janela of janelas) {

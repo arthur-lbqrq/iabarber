@@ -4,6 +4,7 @@ import { consultarHorariosDisponiveis } from '../tools/consultarHorarios.js';
 import { criarAgendamento } from '../tools/criarAgendamento.js';
 import { cancelarAgendamento } from '../tools/cancelarAgendamento.js';
 import { buscarProximoAgendamento } from '../tools/buscarAgendamentoCliente.js';
+import { falarComAtendente } from '../tools/falarComAtendente.js';
 import {
   consultarAgendaCompleta,
   atualizarHorarioFuncionamento,
@@ -57,6 +58,17 @@ export const FERRAMENTAS_CLIENTE: Anthropic.Tool[] = [
     name: 'cancelar_agendamento',
     description: 'Cancela o próximo agendamento confirmado do cliente desta conversa.',
     input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'falar_com_atendente',
+    description:
+      'Aciona um atendente humano (avisa os barbeiros ativos por WhatsApp) quando o cliente pede uma pessoa, tem reclamação, dúvida complexa, ou algo que as outras ferramentas não resolvem.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        motivo: { type: 'string', description: 'Breve resumo do que o cliente precisa, pra avisar o atendente.' },
+      },
+    },
   },
 ];
 
@@ -254,6 +266,14 @@ async function executarFerramentaCliente(
     const proximo = await buscarProximoAgendamento(barbeariaId, clienteTelefone);
     if (!proximo) return { erro: 'nenhum_agendamento_futuro' };
     return cancelarAgendamento(proximo.id);
+  }
+
+  if (nomeFerramenta === 'falar_com_atendente') {
+    return falarComAtendente({
+      barbeariaId,
+      clienteTelefone,
+      motivo: input.motivo ? String(input.motivo) : undefined,
+    });
   }
 
   return { erro: `ferramenta_desconhecida: ${nomeFerramenta}` };

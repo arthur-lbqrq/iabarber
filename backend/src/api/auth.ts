@@ -5,7 +5,7 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
-      barbeiro?: { id: string; nome: string };
+      barbeiro?: { id: string; nome: string; barbearia_id: string };
     }
   }
 }
@@ -28,7 +28,7 @@ export async function exigirBarbeiroLogado(req: Request, res: Response, next: Ne
 
   const { data: barbeiro } = await supabase
     .from('barbeiros')
-    .select('id, nome')
+    .select('id, nome, barbearia_id')
     .eq('user_id', sessao.user.id)
     .maybeSingle();
 

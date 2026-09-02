@@ -3,6 +3,8 @@ import { env } from './config/env.js';
 import { whatsappWebhookRouter } from './webhook/whatsapp.js';
 import { conversasRouter } from './api/conversas.js';
 import { adminRouter } from './api/admin.js';
+import { assinaturasRouter } from './api/assinaturas.js';
+import { indicadoresRouter } from './api/indicadores.js';
 
 // CORS mínimo, sem dependência nova — só pro painel web (dev local/rede local)
 // conseguir chamar as rotas /api/*. A Evolution API não passa por aqui (chama
@@ -33,6 +35,8 @@ app.use((req, res, next) => {
 app.use(whatsappWebhookRouter);
 app.use(conversasRouter);
 app.use(adminRouter);
+app.use(assinaturasRouter);
+app.use(indicadoresRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
