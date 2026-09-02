@@ -24,4 +24,8 @@ export const env = {
     .split(',')
     .map((origem) => origem.trim())
     .filter(Boolean),
+  // Desligado por padrão de propósito — dispara mensagem pra cliente real sem
+  // gatilho dele, usando uma API não-oficial do WhatsApp. Só liga de verdade com
+  // RETENCAO_AUTOMATICA_ATIVA=true no .env, depois de confirmar explicitamente.
+  retencaoAutomaticaAtiva: process.env.RETENCAO_AUTOMATICA_ATIVA === 'true',
 };

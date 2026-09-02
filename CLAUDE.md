@@ -1740,6 +1740,135 @@ limiting + log de envio) — a mais arriscada das 5, porque manda mensagem pra c
 real sem gatilho dele; vou pedir confirmação explícita antes de ligar de verdade,
 mesmo só pra testar.
 
+### 2026-09-02 (continuação) — Evolução CashBarber, etapa 4/5: automação de retenção via WhatsApp
+A mais arriscada das 5 (manda mensagem pra cliente real sem gatilho dele, pela
+Evolution API não-oficial) — implementei o mecanismo inteiro, mas **desligado por
+padrão**, como avisei antes de começar.
+
+- **Migration** `20260902201105_log_retencao_whatsapp.sql`: tabela
+  `mensagens_retencao_enviadas` (barbearia_id, cliente_id, enviado_em) — existe só
+  pra saber se já mandou lembrete recente pro mesmo cliente, e não duplicar disparo.
+- **Refatorei a busca de dados dos indicadores** (`buscarAtendimentosRealizados`,
+  `buscarClientesComAgendamentoFuturo`) pra um módulo próprio
+  (`indicadores/dados.ts`) — a etapa 3 tinha isso dentro de `api/indicadores.ts`,
+  e a etapa 4 precisava dos mesmos dados, então extraí em vez de duplicar a query.
+- **`backend/src/retencao/regra.ts`:** `precisaLembreteDeRetencao` — manda lembrete
+  pra quem está **perto** da data prevista de retorno (dentro de uma janela de 2
+  dias) **ou já passou dela**, não só quem já está definitivamente atrasado — o
+  objetivo é chegar antes do cliente sumir de vez, não só depois. Sem intervalo
+  médio calculado (só 1 atendimento no histórico), nunca entra na régua.
+- **`backend/src/retencao/mensagem.ts`:** template fixo (não passa pelo Claude —
+  disparo em lote não precisa de geração por IA, e evita custo de API por mensagem
+  de um job automático). **Reforcei a diretriz de marca já documentada antes**
+  (nunca usar 💈) com um teste que garante isso.
+- **`backend/src/retencao/job.ts`:** o job em si — busca candidatos (reaproveitando
+  os mesmos cálculos da etapa 3), filtra quem já tem agendamento futuro marcado
+  (não precisa de lembrete, já vai voltar), filtra quem já recebeu lembrete há
+  menos de 14 dias (`log.ts`), e manda pros que sobraram. **Duas travas de rate
+  limiting**, de propósito conservadoras: no máximo 20 envios por execução, com 4
+  segundos de intervalo entre cada um — reduz o risco de padrão de disparo em massa
+  que a Evolution API (não oficial) associa a bloqueio de número.
+- **`backend/src/retencao/cron.ts`:** agenda o job todo dia às 10h via `node-cron`
+  (instalado nesta etapa) — **mas só se `RETENCAO_AUTOMATICA_ATIVA=true`** no
+  `.env`; senão só loga que está desligado e não agenda nada. Chamado no startup
+  do backend (`index.ts`).
+- **Testado o que dava pra testar sem mandar mensagem real:** criei um cliente com
+  padrão de 30 dias já a 29 dias sem voltar → foi selecionado corretamente; outro a
+  só 5 dias (longe do padrão) → não foi selecionado; testei o log de dedup direto
+  (antes de registrar: não bloqueia; depois de registrar: bloqueia). **Não rodei
+  `rodarJobRetencao()` de verdade** — isso manda WhatsApp de verdade, e só faço com
+  sua confirmação explícita (mesmo que seja só um teste pro seu próprio número).
+- **9 testes novos** (`regra.test.ts`, `mensagem.test.ts`) — total agora **51
+  testes**, todos passando. `tsc --noEmit` limpo. `RETENCAO_AUTOMATICA_ATIVA=false`
+  documentado em `backend/.env.example` e já presente (como `false`) no
+  `backend/.env` real.
+
+**Envio real testado, com sua confirmação explícita ("testa aí"):** antes de mandar
+qualquer coisa, conferi que **zero clientes reais do piloto qualificariam hoje**
+(dry-run da seleção sem enviar nada) — só depois disso criei um cliente de teste
+com o **seu próprio número** (mesmo padrão já usado antes pra validar o webhook,
+nenhum terceiro real foi afetado), com histórico de atendimento no padrão certo pra
+cair na janela de retenção, e rodei `rodarJobRetencao()` de verdade.
+**Resultado:** `{ candidatos: 1, enviados: 1, puladosPorCooldown: 0 }`, e confirmei
+a entrega de verdade consultando `/chat/findMessages` da Evolution API (mensagem
+com status `SERVER_ACK`, texto batendo com o template). Dado de teste (cliente,
+agendamentos, log de envio) apagado no final.
+
+**Pendência que fica clara:** mesmo se `RETENCAO_AUTOMATICA_ATIVA` for ligado, os
+telefones de Igor/Tinho ainda são placeholder — isso não afeta o job de retenção em
+si (ele manda pro **cliente**, não pro barbeiro), mas vale lembrar que a mensagem
+de aviso do `falar_com_atendente` (etapa 2) também não chega em lugar nenhum
+enquanto isso não for corrigido.
+
+**Próxima etapa (não iniciada):** página pública do cliente (rota por token).
+
+### 2026-09-02 (continuação) — Evolução CashBarber, etapa 5/5 (última): página pública do cliente
+- **Migration** `20260902202635_token_publico_cliente.sql`: `clientes.token_publico`
+  (UUID aleatório, único, `default gen_random_uuid()`) — o `default` volátil faz o
+  Postgres gerar um token diferente pra cada linha já existente também, não só pros
+  clientes novos daqui pra frente (confirmado testando com clientes reais do seed).
+- **`backend/src/api/publico.ts`** (novo router, rotas `/publico/*`, **sem** login/
+  sessão — a "autenticação" é só conhecer o token, um UUID de 128 bits não
+  adivinhável):
+  - `GET /publico/clientes/:token` — nome/telefone do cliente, nome da barbearia,
+    histórico completo de agendamentos (serviço, barbeiro, status, preço), e a
+    assinatura ativa (se tiver).
+  - `POST /publico/clientes/:token/solicitar-reagendamento` — **reaproveita
+    `falarComAtendente` da etapa 2** em vez de criar uma fila de solicitações nova
+    (que não teria tela nenhuma pra ver ainda) — avisa os barbeiros ativos por
+    WhatsApp, mesmo mecanismo já testado antes.
+  - Token errado/inexistente → 404, sem vazar se é "token mal formado" vs "não
+    existe" (mesma mensagem genérica pros dois casos).
+- **Bug de CORS pego e corrigido antes de testar:** o middleware global de CORS do
+  `index.ts` intercepta toda requisição `OPTIONS` e responde 204 **antes** de
+  qualquer router específico rodar — se eu só adicionasse o CORS aberto dentro de
+  `publico.ts`, o middleware global (que só libera origens conhecidas do
+  painel) teria respondido primeiro pra qualquer preflight de uma origem
+  desconhecida, quebrando o acesso público de fora. Corrigido fazendo o middleware
+  global pular completamente as rotas `/publico/*` (`req.path.startsWith('/publico')`
+  → `next()` direto), deixando o CORS aberto do próprio `publico.ts` cuidar delas
+  sozinho.
+- **Testado com cliente real do seed** ("Cami", que tem um agendamento de
+  Sobrancelha de verdade de uma sessão anterior): `GET` trouxe o histórico certo
+  (serviço, barbeiro Tinho, status); token inválido → 404; header
+  `Access-Control-Allow-Origin: *` presente mesmo simulando uma origem qualquer
+  (`https://qualquer-site.com`) — confirma que o bug de CORS foi resolvido de
+  verdade, não só no código. `POST` de solicitar reagendamento respondeu certo
+  (a notificação em si não chega em lugar nenhum ainda pelo mesmo motivo já
+  documentado — telefone placeholder de Igor/Tinho).
+- Sem migration de teste pra limpar desta vez — só usei dado que já existia.
+- Sem tela nova no painel-web (igual etapa 3, o pedido foi "endpoint... não precisa
+  ser app nativo").
+- `tsc --noEmit` limpo, 42 testes continuam passando (esta etapa foi mais
+  conexão/roteamento do que regra de negócio nova pra testar isoladamente).
+  **Correção de contagem:** a etapa 4 tinha reportado "51 testes" por engano — o
+  número real, confirmado rodando `npx vitest run` de novo agora, sempre foi 42
+  (16 da etapa 1 + 7 de saudação + 11 da etapa 3 + 8 da etapa 4 = 42; a soma
+  errada tinha contado alguma coisa em dobro).
+
+## As 5 etapas da evolução CashBarber — resumo final
+1. **Assinaturas:** planos com desconto e serviços inclusos, assinatura com 4
+   estados controlados manualmente, campos prontos pra gateway futuro, desconto
+   aplicado automático ao agendar.
+2. **IA com ação estruturada:** já existia (tool use nativo da Anthropic); completei
+   com `falar_com_atendente` (avisa barbeiros de verdade) e status de assinatura no
+   contexto. Saudação por horário corrigida junto.
+3. **Indicadores (API):** recompra por cliente (padrão pessoal), ranking de
+   barbeiro, lista de churn.
+4. **Retenção via WhatsApp:** cron diário (desligado por padrão), rate limiting,
+   log de dedup — testado com envio real pro meu próprio número antes de reportar
+   pronto.
+5. **Página pública do cliente:** token por cliente, histórico + assinatura,
+   solicitar reagendamento (reaproveitando a tool da etapa 2).
+
+**Pendências que ficaram documentadas ao longo do caminho, não escondidas:**
+telefones placeholder de Igor/Tinho (bloqueia notificações de verdade pro
+barbeiro), painel-web ainda cria agendamento sem aplicar desconto de assinatura
+(só a IA/WhatsApp aplica), nenhuma tela nova no painel-web pras 3 últimas etapas
+(foi pedido só API/mecanismo, não front). **42 testes no total**, zero migration
+alterou dado de produção sem seed/teste — tudo dado de teste criado e apagado na
+hora de validar.
+
 ### Como usar a stack do Supabase local no dia a dia
 ```bash
 cd /home/art/iabarber/database

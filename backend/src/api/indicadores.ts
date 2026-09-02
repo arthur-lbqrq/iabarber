@@ -3,39 +3,10 @@ import { supabase } from '../supabase/client.js';
 import { exigirBarbeiroLogado } from './auth.js';
 import { calcularRecompraPorCliente } from '../indicadores/recompra.js';
 import { calcularRankingBarbeiros } from '../indicadores/ranking.js';
-import type { AtendimentoRealizado } from '../indicadores/tipos.js';
+import { buscarAtendimentosRealizados, buscarClientesComAgendamentoFuturo } from '../indicadores/dados.js';
 
 export const indicadoresRouter = Router();
 indicadoresRouter.use('/api/indicadores', exigirBarbeiroLogado);
-
-async function buscarAtendimentosRealizados(barbeariaId: string): Promise<AtendimentoRealizado[]> {
-  const { data, error } = await supabase
-    .from('agendamentos')
-    .select('cliente_id, barbeiro_id, inicio, preco_centavos')
-    .eq('barbearia_id', barbeariaId)
-    .in('status', ['confirmado', 'concluido'])
-    .lte('inicio', new Date().toISOString());
-
-  if (error) throw error;
-
-  return (data ?? []).map((a) => ({
-    clienteId: a.cliente_id,
-    barbeiroId: a.barbeiro_id,
-    inicio: a.inicio,
-    precoCentavos: a.preco_centavos,
-  }));
-}
-
-async function buscarClientesComAgendamentoFuturo(barbeariaId: string): Promise<Set<string>> {
-  const { data } = await supabase
-    .from('agendamentos')
-    .select('cliente_id')
-    .eq('barbearia_id', barbeariaId)
-    .eq('status', 'confirmado')
-    .gt('inicio', new Date().toISOString());
-
-  return new Set((data ?? []).map((a) => a.cliente_id));
-}
 
 // Período de recompra por cliente + sinalização de quem está atrasado.
 indicadoresRouter.get('/api/indicadores/recompra', async (req, res) => {

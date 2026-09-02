@@ -5,6 +5,8 @@ import { conversasRouter } from './api/conversas.js';
 import { adminRouter } from './api/admin.js';
 import { assinaturasRouter } from './api/assinaturas.js';
 import { indicadoresRouter } from './api/indicadores.js';
+import { iniciarCronRetencao } from './retencao/cron.js';
+import { publicoRouter } from './api/publico.js';
 
 // CORS mínimo, sem dependência nova — só pro painel web (dev local/rede local)
 // conseguir chamar as rotas /api/*. A Evolution API não passa por aqui (chama
@@ -19,6 +21,13 @@ const app = express();
 app.use(express.json());
 
 app.use((req, res, next) => {
+  // /publico/* tem o próprio CORS (libera qualquer origem, de propósito — ver
+  // api/publico.ts) e não deve ser interceptado pelo OPTIONS restrito abaixo.
+  if (req.path.startsWith('/publico')) {
+    next();
+    return;
+  }
+
   const origem = req.headers.origin;
   if (origem && (ORIGENS_PERMITIDAS.some((padrao) => padrao.test(origem)) || env.frontendOrigins.includes(origem))) {
     res.setHeader('Access-Control-Allow-Origin', origem);
@@ -37,6 +46,7 @@ app.use(conversasRouter);
 app.use(adminRouter);
 app.use(assinaturasRouter);
 app.use(indicadoresRouter);
+app.use(publicoRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
@@ -45,3 +55,5 @@ app.get('/health', (_req, res) => {
 app.listen(env.port, () => {
   console.log(`iabarber-backend ouvindo na porta ${env.port}`);
 });
+
+iniciarCronRetencao();
