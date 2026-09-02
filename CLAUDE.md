@@ -106,6 +106,10 @@ iabarber/
 │   ├── src/
 │   └── package.json
 │
+├── painel-admin/                  # painel do admin do Corte Certo (React + TypeScript)
+│   ├── src/                         # cross-tenant: enxerga/gerencia TODAS as barbearias
+│   └── package.json                 # fala com backend/src/api/admin.ts, nunca com o Supabase direto
+│
 ├── landing/                       # landing page pública de marketing (React + TypeScript)
 │   ├── src/
 │   │   └── components/               # Nav, Hero, ConversaAnimada, ProvaEmUso, CtaFinal etc.
@@ -119,6 +123,15 @@ iabarber/
 (sem login), enquanto `painel-web` é a ferramenta autenticada do dono da barbearia. Mesma
 stack (Vite + React + TS) e mesmos tokens de design, mas deploys/públicos diferentes faz
 sentido no futuro (ex.: `cortecerto.com` vs `app.cortecerto.com`).
+
+`painel-admin/` (criado em 2026-09-02) é um terceiro projeto separado, também de propósito:
+`painel-web` é escopado a **uma** barbearia (o barbeiro logado só vê a própria, via RLS);
+`painel-admin` é **cross-tenant** (você, dono do Corte Certo, vendo/gerenciando todas as
+barbearias cadastradas). Justamente por enxergar tudo, ele não fala com o Supabase direto
+como o `painel-web` faz — passa pelo `backend` (rotas `/api/admin/*`), que confirma que
+quem está logado é mesmo um admin (tabela `admins`, separada de `barbeiros`) antes de usar
+a service role key. Login separado do login de barbeiro-admin da Barbearia Piloto, de
+propósito — são papéis diferentes.
 
 **Nota:** a estrutura de `database/` acima é ligeiramente diferente do desenho original
 deste arquivo — em vez de `database/migrations/` direto, ficou `database/supabase/migrations/`
@@ -1440,6 +1453,109 @@ lado a lado, tabelas largas).
   confirmar que nada regrediu (barra mobile continua escondida, layout idêntico
   a antes).
 - `tsc -b` limpo em todos os arquivos alterados.
+
+### 2026-09-02 (continuação) — painel no Vercel funcionando de verdade, celular incluso
+Você testou pelo celular de verdade (Safari, iPhone) e achou dois problemas reais:
+
+- **Primeiro teste foi num link antigo:** a URL que você tinha salva
+  (`...4-arthurs-projects-bf401924.vercel.app`) era de um deploy específico de
+  antes do ajuste de mobile — Vercel gera uma URL própria por deploy, então um
+  link salvo não atualiza sozinho. Resolvido usando o domínio de produção
+  (`iabarber-pearl.vercel.app`), que sempre aponta pro deploy mais recente.
+- **Aba "Conversas" com "Não consegui falar com o backend (Load failed)":** causa
+  real, confirmada por mim antes de mexer — `FRONTEND_ORIGIN` no `backend/.env`
+  estava vazio (só um placeholder desde a sessão anterior), então mesmo com o
+  túnel do Cloudflare no ar, o backend bloqueava a resposta por CORS pra
+  qualquer origem que não fosse localhost/rede local. Corrigido: `FRONTEND_ORIGIN=
+  https://iabarber-pearl.vercel.app`, backend reiniciado (matei o processo na
+  porta 3001 e subi de novo, já que `.env` não recarrega sozinho com o
+  `tsx watch`, só mudança de código). **Testado de verdade** com `curl -H
+  "Origin: https://iabarber-pearl.vercel.app"` contra a URL do túnel, confirmando
+  o header `Access-Control-Allow-Origin` certo antes de considerar resolvido.
+- **Resultado:** painel funcionando 100% pelo celular, incluindo a aba
+  Conversas (que depende do backend local via túnel) — confirmado por você
+  ("Funcionando perfeitamente").
+- **Fragilidade que vale registrar:** esse caminho (backend local + Evolution
+  API local + túnel "quick" do Cloudflare sem conta) depende de 3 coisas
+  continuarem de pé ao mesmo tempo neste PC: Docker Desktop, o processo do
+  backend (`npm run dev`), e o processo do `cloudflared`. Se qualquer um cair
+  (PC reiniciar, notebook dormir, terminal fechar), a Agenda/Clientes/Equipe/
+  Serviços continuam funcionando (falam direto com o Supabase cloud), mas
+  **Conversas** para de responder e a URL do túnel muda se o `cloudflared` for
+  religado — precisaria atualizar `VITE_BACKEND_URL` no Vercel e redeployar de
+  novo. Não é um problema agora (fase de validação), mas é a razão de existir o
+  plano de deploy real na DigitalOcean documentado antes.
+
+### 2026-09-02 (continuação) — painel-admin: novo app pra você administrar TODAS as barbearias
+Você pediu um painel novo, separado do `painel-web` (que é escopado a uma barbearia
+só, via barbeiro logado) — uma visão "por cima", cross-tenant, pra você como dono do
+Corte Certo enxergar e gerenciar todas as barbearias cadastradas. Confirmei duas
+decisões antes de começar (app novo e separado + já com gestão completa, não só
+leitura), porque isso cria um nível de acesso novo no sistema.
+
+- **Por que não dava pra fazer só com RLS (o jeito que o painel-web usa hoje):** RLS
+  no `painel-web` restringe cada barbeiro à própria barbearia via
+  `barbearia_id_do_usuario_atual()`. Um admin cross-tenant precisaria de policies
+  novas em quase toda tabela, e a ação mais sensível (criar o **login** de um
+  barbeiro novo) exige a Admin API do Supabase Auth, que só funciona com a service
+  role key — nunca pode rodar no navegador. Por isso o `painel-admin` não fala com o
+  Supabase direto: ele fala com o `backend` (rotas novas `/api/admin/*`), que aí sim
+  usa a service role key, do mesmo jeito que `/api/conversas` já fazia pro
+  painel-web.
+- **Banco (`database/supabase/migrations/20260902144618_admin_corte_certo.sql`):**
+  - Tabela `admins` nova (`user_id`, `nome`, `email`) — com RLS **ligado e sem
+    nenhuma policy**, de propósito: bloqueia qualquer leitura/escrita direta via
+    anon/authenticated key, só o service role do backend acessa. Separada da tabela
+    `barbeiros` porque são conceitos diferentes (admin do produto vs. barbeiro de
+    uma barbearia específica).
+  - `barbearias` ganhou coluna `ativo` (não existia) — pra poder desativar uma
+    barbearia sem apagar dado nenhum, mesmo padrão já usado em `servicos.ativo` e
+    `agendamentos.status`.
+  - `auditoria_admin` (já existia, criada pro modo admin do WhatsApp) passou a
+    aceitar `admin_id` também, com `barbeiro_id` virando opcional — assim as ações
+    feitas pelo painel novo entram no mesmo registro de auditoria das ações feitas
+    pelo WhatsApp, em vez de duas tabelas de log separadas.
+- **Backend (`backend/src/api/adminAuth.ts` + `backend/src/api/admin.ts`):** mesmo
+  padrão do `exigirBarbeiroLogado` já existente, só que checando a tabela `admins`
+  em vez de `barbeiros`. Rotas: listar barbearias (com contagem de barbeiros),
+  criar barbearia, ver detalhe, editar/ativar/desativar, criar barbeiro dentro de
+  uma barbearia (cria o login via Admin API **e** a linha em `barbeiros` — se um dos
+  dois falhar, desfaz o outro pra não deixar login órfão sem barbeiro), ativar/
+  desativar barbeiro. Toda mutação grava em `auditoria_admin`.
+  - **Bug real pego durante o teste:** o middleware de CORS só liberava
+    `GET,POST,OPTIONS` — as rotas de admin usam `PATCH`, e o primeiro teste real
+    (Playwright) travou com erro de CORS no navegador antes de eu perceber e
+    corrigir (`Access-Control-Allow-Methods` agora inclui `PATCH,DELETE` também).
+- **App novo `painel-admin/`** (Vite + React + TS, mesmos tokens visuais do
+  `painel-web` — Sora/Inter, mesma paleta escura, `Logo.tsx` copiado): tela de
+  login própria, lista de barbearias com contagem de barbeiros e status, criar
+  barbearia nova, abrir uma barbearia (dados, ativar/desativar, editar, lista de
+  barbeiros com toggle ativo/inativo, adicionar barbeiro novo com login).
+  - Isso também fecha uma lacuna que já estava documentada como bloqueada: a aba
+    Equipe do `painel-web` sempre disse "novos membros... precisam ser cadastrados
+    por quem administra o sistema — ainda não dá pra criar por aqui". Agora dá,
+    pelo `painel-admin`.
+  - **Testado de ponta a ponta com Playwright de verdade** (instalado/desinstalado
+    temporariamente, sem tocar `package.json`): login como admin funciona; login
+    com uma conta de barbeiro comum (Igor) é **rejeitado e desloga sozinho**
+    (confirma que a rota `/api/admin/me` bloqueia quem não está na tabela `admins`,
+    não é só o frontend escondendo botão); criar barbearia nova aparece na lista;
+    abrir o detalhe, adicionar um barbeiro (criou login de verdade), desativar a
+    barbearia inteira e o barbeiro individualmente — tudo confirmado via
+    screenshot **e** conferindo os dados reais no banco depois (inclusive o
+    registro em `auditoria_admin` de cada ação). Dados de teste apagados no fim
+    (barbearia, barbeiro, e o usuário de auth órfão que a primeira tentativa
+    falha tinha deixado pra trás).
+- **Seu login do painel-admin:** `arthur@cortecerto.local` / `iabarber123`
+  (identidade separada do seu login de barbeiro-admin da Barbearia Piloto,
+  `arthur@barbeariapiloto.local` — são dois papéis diferentes, dois logins
+  diferentes, de propósito).
+- Rodando local em `http://localhost:5174` (`npm run dev -- --host` dentro de
+  `painel-admin/`). **Não fiz deploy nem preparei Docker/Vercel pra esse app
+  ainda** — não foi pedido, e a prioridade de custos deste projeto é validar antes
+  de gastar/expandir escopo.
+- **Ainda não commitado** — pasta nova inteira (`painel-admin/`) + migration nova
+  + as 3 mudanças no `backend/` (CORS, `adminAuth.ts`, `admin.ts`, `index.ts`).
 
 ### Como usar a stack do Supabase local no dia a dia
 ```bash

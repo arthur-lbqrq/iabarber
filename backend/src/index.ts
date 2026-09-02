@@ -2,6 +2,7 @@ import express from 'express';
 import { env } from './config/env.js';
 import { whatsappWebhookRouter } from './webhook/whatsapp.js';
 import { conversasRouter } from './api/conversas.js';
+import { adminRouter } from './api/admin.js';
 
 // CORS mínimo, sem dependência nova — só pro painel web (dev local/rede local)
 // conseguir chamar as rotas /api/*. A Evolution API não passa por aqui (chama
@@ -20,7 +21,7 @@ app.use((req, res, next) => {
   if (origem && (ORIGENS_PERMITIDAS.some((padrao) => padrao.test(origem)) || env.frontendOrigins.includes(origem))) {
     res.setHeader('Access-Control-Allow-Origin', origem);
     res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
   }
   if (req.method === 'OPTIONS') {
     res.sendStatus(204);
@@ -31,6 +32,7 @@ app.use((req, res, next) => {
 
 app.use(whatsappWebhookRouter);
 app.use(conversasRouter);
+app.use(adminRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
