@@ -49,36 +49,38 @@ export function Equipe() {
       ) : erro ? (
         <p className="erro">Erro ao carregar equipe: {erro}</p>
       ) : (
-        <table className="tabela-lista">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>WhatsApp (modo admin)</th>
-              <th>Login no painel</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {equipe.map((membro) => (
-              <tr key={membro.id}>
-                <td>{membro.nome}</td>
-                <td>{membro.telefone || '—'}</td>
-                <td>
-                  <span className={`chip ${membro.user_id ? 'verde' : 'aco'}`}>
-                    <span className="ponto" />
-                    {membro.user_id ? 'Configurado' : 'Não configurado'}
-                  </span>
-                </td>
-                <td>
-                  <span className={`chip ${membro.ativo ? 'verde' : 'aco'}`}>
-                    <span className="ponto" />
-                    {membro.ativo ? 'Ativo' : 'Inativo'}
-                  </span>
-                </td>
+        <div className="tabela-scroll">
+          <table className="tabela-lista">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>WhatsApp (modo admin)</th>
+                <th>Login no painel</th>
+                <th>Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {equipe.map((membro) => (
+                <tr key={membro.id}>
+                  <td>{membro.nome}</td>
+                  <td>{membro.telefone || '—'}</td>
+                  <td>
+                    <span className={`chip ${membro.user_id ? 'verde' : 'aco'}`}>
+                      <span className="ponto" />
+                      {membro.user_id ? 'Configurado' : 'Não configurado'}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`chip ${membro.ativo ? 'verde' : 'aco'}`}>
+                      <span className="ponto" />
+                      {membro.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </>
   );

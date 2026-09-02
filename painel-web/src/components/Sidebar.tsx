@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Logo } from './Logo';
 
@@ -13,33 +14,56 @@ const ITENS: { aba: Aba; rotulo: string }[] = [
 ];
 
 export function Sidebar({ aba, onMudarAba }: { aba: Aba; onMudarAba: (aba: Aba) => void }) {
+  const [menuAberto, setMenuAberto] = useState(false);
+
+  function selecionar(novaAba: Aba) {
+    onMudarAba(novaAba);
+    setMenuAberto(false);
+  }
+
   return (
-    <aside className="sidebar">
-      <div className="logo-sidebar">
-        <Logo tamanho={24} />
-        <span>Corte Certo</span>
-      </div>
+    <>
+      <header className="barra-mobile">
+        <button className="botao-menu" onClick={() => setMenuAberto(true)} aria-label="Abrir menu">
+          <span />
+          <span />
+          <span />
+        </button>
+        <div className="logo-sidebar">
+          <Logo tamanho={22} />
+          <span>Corte Certo</span>
+        </div>
+      </header>
 
-      <nav className="nav-sidebar">
-        {ITENS.map((item) => (
-          <button
-            key={item.aba}
-            className={aba === item.aba ? 'ativo' : ''}
-            onClick={() => onMudarAba(item.aba)}
-          >
-            {item.rotulo}
-          </button>
-        ))}
-      </nav>
+      {menuAberto && <div className="fundo-menu-mobile" onClick={() => setMenuAberto(false)} />}
 
-      <button onClick={() => supabase.auth.signOut()} className="link-acao" style={{ textAlign: 'left' }}>
-        Sair
-      </button>
+      <aside className={`sidebar${menuAberto ? ' aberto' : ''}`}>
+        <div className="logo-sidebar">
+          <Logo tamanho={24} />
+          <span>Corte Certo</span>
+        </div>
 
-      <div className="pill-whatsapp">
-        <span className="ponto" />
-        WhatsApp conectado
-      </div>
-    </aside>
+        <nav className="nav-sidebar">
+          {ITENS.map((item) => (
+            <button
+              key={item.aba}
+              className={aba === item.aba ? 'ativo' : ''}
+              onClick={() => selecionar(item.aba)}
+            >
+              {item.rotulo}
+            </button>
+          ))}
+        </nav>
+
+        <button onClick={() => supabase.auth.signOut()} className="link-acao" style={{ textAlign: 'left' }}>
+          Sair
+        </button>
+
+        <div className="pill-whatsapp">
+          <span className="ponto" />
+          WhatsApp conectado
+        </div>
+      </aside>
+    </>
   );
 }

@@ -132,7 +132,8 @@ export function Servicos({ barbeiro }: { barbeiro: Barbeiro }) {
       {carregando ? (
         <p>Carregando...</p>
       ) : (
-        <table className="tabela-lista">
+        <div className="tabela-scroll">
+          <table className="tabela-lista">
           <thead>
             <tr>
               <th>Nome</th>
@@ -227,6 +228,7 @@ export function Servicos({ barbeiro }: { barbeiro: Barbeiro }) {
             })}
           </tbody>
         </table>
+        </div>
       )}
     </>
   );

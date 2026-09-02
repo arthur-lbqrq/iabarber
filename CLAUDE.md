@@ -1356,6 +1356,91 @@ domínio pra já ficar acessível de qualquer lugar).
   5. Deploy. Depois, pegar a URL que o Vercel gerar e colar em `FRONTEND_ORIGIN` no
      `backend/.env` (e reiniciar o backend) pra liberar o CORS.
 
+### 2026-09-02 (continuação) — commit/push + cloudflared instalado
+- **Commit criado e enviado** (`40c45ae`, `git push` — bloqueado pelo classificador de
+  permissão automático na primeira tentativa, mesmo com sua instrução explícita; você
+  então avisou que tinha ativado o Remote Control e pediu pra eu tentar de novo, e aí
+  sim funcionou). Cobre toda a migração pro PC Windows/Supabase cloud, a correção da
+  memória da IA, a Agenda em grade e a preparação de deploy.
+- **`cloudflared` instalado neste PC** (Windows), a seu pedido, via
+  `winget install --id Cloudflare.cloudflared` — não estava presente antes
+  (`cloudflared --version` não era reconhecido). Instalação limpa, versão
+  `2026.8.3`. **Atenção:** o PATH do sistema foi atualizado pelo instalador, mas
+  sessões de terminal já abertas antes da instalação não veem isso automaticamente —
+  se `cloudflared` "não for reconhecido" num terminal já aberto, é só abrir um novo
+  (ou reiniciar o PowerShell) que resolve.
+- **Não criei nenhum túnel ainda** — só instalei o binário, como foi pedido
+  especificamente. Provável próximo uso: expor o backend local (porta 3001) pra
+  internet via Cloudflare Tunnel, o que resolveria a limitação da aba "Conversas" do
+  painel no Vercel (documentada na entrada anterior) sem precisar de VPS paga — mas
+  isso é hipótese minha, não fiz nada nessa direção até você pedir.
+
+### 2026-09-02 (continuação) — login de administração pra você (Arthur)
+Você pediu um login próprio pra administrar a barbearia, além do login de teste do
+barbeiro que já existia.
+
+- **Sem role de "dono" separada no schema hoje** — o painel só entende "barbeiro"
+  (`barbeiros.user_id` vinculado a `auth.users`), e a barbearia inteira (Agenda,
+  Clientes, Equipe, Serviços, Horários) já é visível pra qualquer barbeiro logado.
+  Em vez de desenhar uma role nova (mudança de schema maior, não pedida), criei você
+  como um barbeiro **com `ativo: false`** — dá login completo no painel, mas não
+  aparece como coluna de profissional na grade da Agenda (você não presta serviço,
+  só administra) nem teria como filho horários de trabalho fazendo sentido.
+- **Criado via script descartável** (mesma técnica do `criar-usuario-teste.sh`: POST
+  em `/auth/v1/admin/users` pra criar o login, depois insert em `barbeiros` linkado
+  pelo `user_id`), rodado contra o Supabase cloud e apagado depois. Testado logando
+  de verdade (POST `/auth/v1/token?grant_type=password`) antes de reportar pronto.
+- **Seu login:** `arthur@barbeariapiloto.local` / `iabarber123` (mesma senha simples
+  do login de teste do Igor — estamos em fase de teste local/piloto, sem stakes de
+  segurança real ainda; troque antes de qualquer uso com cliente pagante de verdade).
+- **Login de teste do barbeiro (já existia, não é novo):** `igor@barbeariapiloto.local`
+  / `iabarber123`, recriável a qualquer momento com `database/criar-usuario-teste.sh`.
+
+### 2026-09-02 (continuação) — painel web responsivo pra mobile
+Você pediu pra deixar o painel bem trabalhado em celular — até aqui só tinha sido
+testado/desenhado pra desktop (sidebar fixa de 196px, grade da Agenda com colunas
+lado a lado, tabelas largas).
+
+- **Navegação:** `Sidebar.tsx` ganhou um estado próprio de menu aberto/fechado.
+  Abaixo de 860px de largura, a sidebar fixa vira um menu "drawer" (desliza da
+  esquerda, `position: fixed` + `transform: translateX`), acionado por uma barra
+  superior nova com botão hambúrguer + logo. Um fundo escurecido
+  (`.fundo-menu-mobile`) fecha o menu ao tocar fora, e escolher qualquer aba já
+  fecha o menu sozinho (`selecionar()` chama `onMudarAba` + fecha).
+- **Cabeçalho das páginas (`cabecalho-painel`):** no mobile, quebra em várias
+  linhas (`flex-wrap`) em vez de espremer título + navegação de data + botão numa
+  linha só. Na Agenda, o bloco de navegação de data (`nav-data`) vira uma linha
+  inteira própria, com o campo de data esticando pra ocupar o espaço.
+- **Grade da Agenda (a parte mais arriscada pra mobile):** em vez de espremer as
+  colunas dos barbeiros até ficarem ilegíveis, o quadro inteiro rola de lado
+  (`overflow-x: auto`) com cada coluna mantendo uma largura mínima legível
+  (200px) — mesmo comportamento de app de calendário de verdade em tela pequena.
+  O eixo de horas (`eixo-horas`) fica `position: sticky` à esquerda, então as
+  horas continuam visíveis mesmo rolando pros barbeiros mais à direita.
+- **Tabelas** (`Clientes.tsx`, `Equipe.tsx`, `Servicos.tsx`): cada `<table
+  className="tabela-lista">` foi envolvida num `<div className="tabela-scroll">`
+  novo, que rola de lado em vez de quebrar o layout — a tabela em si ganhou
+  `min-width: 480px` pra nunca comprimir as colunas a ponto de virar sopa de
+  letrinha.
+- **Modal "Novo agendamento" e tela de login:** larguras fixas (340px/320px)
+  viraram `max-width` relativo à viewport (`max-width: 100%`/`88vw`), com
+  padding no fundo do modal (`fundo-modal`) pra nunca encostar nas bordas da tela
+  nem cortar em celulares bem estreitos.
+- **Cards de métrica:** força 2 colunas no mobile (`grid-template-columns:
+  repeat(2, 1fr)`) em vez do `auto-fit` que também funcionaria, mas por acaso
+  ficava com proporção estranha em telas médias — 2x2 é o padrão mais comum de
+  dashboard mobile mesmo.
+- **Testado de verdade com Playwright** (instalado/desinstalado temporariamente
+  de novo, sem tocar `package.json`): viewport de iPhone (375×812) logado de
+  verdade, passando por Agenda, menu aberto, Clientes, Equipe, Serviços,
+  Horários e o modal de novo agendamento — **zero scroll horizontal indevido na
+  página** (`document.documentElement.scrollWidth === window.innerWidth`,
+  conferido via `page.evaluate`, não só "parece bom" no screenshot) e zero erro
+  de console. Rodei também um teste separado em viewport desktop (1400px) pra
+  confirmar que nada regrediu (barra mobile continua escondida, layout idêntico
+  a antes).
+- `tsc -b` limpo em todos os arquivos alterados.
+
 ### Como usar a stack do Supabase local no dia a dia
 ```bash
 cd /home/art/iabarber/database

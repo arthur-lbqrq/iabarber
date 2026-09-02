@@ -55,6 +55,8 @@ h3 {
   align-items: center;
   justify-content: center;
   background: var(--grafite-fundo);
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .cartao-login {
@@ -66,6 +68,8 @@ h3 {
   flex-direction: column;
   gap: 18px;
   width: 320px;
+  max-width: 88vw;
+  box-sizing: border-box;
 }
 
 .logo-login {
@@ -520,8 +524,15 @@ h3 {
   color: var(--aco);
 }
 
+.tabela-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .tabela-lista {
   width: 100%;
+  min-width: 480px;
   border-collapse: collapse;
 }
 
@@ -626,6 +637,9 @@ h3 {
   align-items: center;
   justify-content: center;
   z-index: 10;
+  padding: 16px;
+  box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .cartao-modal {
@@ -634,9 +648,11 @@ h3 {
   border-radius: 14px;
   padding: 24px;
   width: 340px;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  box-sizing: border-box;
 }
 
 .cartao-modal h2 {
@@ -754,4 +770,134 @@ h3 {
   color: var(--terracota-texto);
   cursor: pointer;
   font-size: 13px;
+}
+
+/* ---------- Mobile ---------- */
+
+.barra-mobile {
+  display: none;
+}
+
+.fundo-menu-mobile {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .barra-mobile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--superficie-nav);
+    border-bottom: 1px solid var(--borda-interna);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  .botao-menu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    width: 26px;
+    height: 26px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  .botao-menu span {
+    display: block;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--gelo);
+  }
+
+  .fundo-menu-mobile {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 25;
+  }
+
+  .painel {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 240px;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    z-index: 30;
+  }
+
+  .sidebar.aberto {
+    transform: translateX(0);
+  }
+
+  .conteudo-painel {
+    padding: 18px 16px;
+    gap: 18px;
+  }
+
+  .cabecalho-painel {
+    flex-wrap: wrap;
+  }
+
+  .cabecalho-painel h1 {
+    font-size: 20px;
+  }
+
+  .cabecalho-painel .botao-primario {
+    flex: 1 1 auto;
+  }
+
+  .nav-data {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+
+  .nav-data input[type='date'] {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .grade-metricas {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Grade da Agenda: colunas mantêm largura mínima legível e o quadro rola de
+     lado em vez de espremer os barbeiros — mesmo comportamento de app de
+     calendário em tela pequena. O eixo de horas fica fixo à esquerda ao rolar. */
+  .calendario-dia {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .eixo-horas {
+    position: sticky;
+    left: 0;
+    background: var(--superficie-elevada);
+    z-index: 3;
+  }
+
+  .coluna-barbeiro {
+    min-width: 200px;
+  }
+
+  .linha-campos {
+    flex-wrap: wrap;
+  }
+
+  .linha-campos label {
+    flex: 1 1 140px;
+  }
 }

@@ -58,24 +58,26 @@ export function Clientes() {
       ) : filtrados.length === 0 ? (
         <p>Nenhum cliente encontrado.</p>
       ) : (
-        <table className="tabela-lista">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>WhatsApp</th>
-              <th>Cliente desde</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtrados.map((c) => (
-              <tr key={c.id}>
-                <td>{c.nome || '—'}</td>
-                <td>{c.telefone}</td>
-                <td>{formatarData(c.created_at)}</td>
+        <div className="tabela-scroll">
+          <table className="tabela-lista">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>WhatsApp</th>
+                <th>Cliente desde</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtrados.map((c) => (
+                <tr key={c.id}>
+                  <td>{c.nome || '—'}</td>
+                  <td>{c.telefone}</td>
+                  <td>{formatarData(c.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </>
   );
