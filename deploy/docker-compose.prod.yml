@@ -1,0 +1,91 @@
+# Stack de produção (droplet DigitalOcean) — evolution-api + backend + landing +
+# Caddy (reverse proxy com HTTPS automático via Let's Encrypt).
+# O painel web NÃO está aqui — foi decidido rodar ele no Vercel em vez de num
+# container próprio (ver painel-web/vercel.json e a seção de deploy no CLAUDE.md).
+# Suposição: DOMAIN aponta pra este servidor (A record), com api.$DOMAIN apontando
+# pro mesmo IP.
+#
+# Uso (na raiz deste arquivo, depois de configurar deploy/.env a partir do
+# deploy/.env.example):
+#   docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+
+services:
+  # --- Evolution API (WhatsApp) ---
+  evolution-api:
+    image: evoapicloud/evolution-api:latest
+    restart: unless-stopped
+    depends_on:
+      - evolution-redis
+      - evolution-postgres
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - internal
+    env_file:
+      - evolution-api.env
+
+  evolution-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --port 6379 --appendonly yes
+    volumes:
+      - evolution_redis_data:/data
+    networks:
+      - internal
+
+  evolution-postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${EVOLUTION_POSTGRES_DATABASE}
+      - POSTGRES_USER=${EVOLUTION_POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${EVOLUTION_POSTGRES_PASSWORD}
+    volumes:
+      - evolution_postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  # --- Backend (webhook + IA) ---
+  backend:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    env_file:
+      - backend.env
+    networks:
+      - internal
+
+  # --- Landing page (React estático, servido via nginx) ---
+  landing:
+    build:
+      context: ../landing
+    restart: unless-stopped
+    networks:
+      - internal
+
+  # --- Reverse proxy com HTTPS automático ---
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - internal
+
+volumes:
+  evolution_instances:
+  evolution_redis_data:
+  evolution_postgres_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:
+    driver: bridge

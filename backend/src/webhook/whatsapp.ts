@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { gerarResposta } from '../ai/claude.js';
-import { dentroDoHorarioDeAtendimento, MENSAGEM_FORA_DO_HORARIO } from '../ai/horarioAtendimento.js';
 import { enviarMensagemTexto } from './evolutionClient.js';
 
 interface EvolutionWebhookPayload {
@@ -34,12 +33,6 @@ whatsappWebhookRouter.post('/webhook/whatsapp*', async (req, res) => {
   console.log(`[whatsapp] mensagem de ${numero}: ${texto}`);
 
   try {
-    if (!dentroDoHorarioDeAtendimento()) {
-      await enviarMensagemTexto(numero, MENSAGEM_FORA_DO_HORARIO);
-      console.log(`[whatsapp] fora do horário de atendimento — resposta padrão pra ${numero}, sem chamar o Claude`);
-      return;
-    }
-
     const resposta = await gerarResposta(numero, texto);
     await enviarMensagemTexto(numero, resposta);
     console.log(`[whatsapp] respondido pra ${numero}`);

@@ -17,7 +17,7 @@ app.use(express.json());
 
 app.use((req, res, next) => {
   const origem = req.headers.origin;
-  if (origem && ORIGENS_PERMITIDAS.some((padrao) => padrao.test(origem))) {
+  if (origem && (ORIGENS_PERMITIDAS.some((padrao) => padrao.test(origem)) || env.frontendOrigins.includes(origem))) {
     res.setHeader('Access-Control-Allow-Origin', origem);
     res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');

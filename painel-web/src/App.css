@@ -22,6 +22,7 @@
   --terracota-texto: #e4907a;
   --terracota-tinta-fundo: rgba(224, 122, 95, 0.12);
   --terracota-tinta-borda: rgba(224, 122, 95, 0.28);
+  --linha-agora: #e5484d;
 }
 
 body {
@@ -237,6 +238,45 @@ h3 {
   margin: 4px 0 0;
 }
 
+.nav-data {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-data button {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie-elevada);
+  color: var(--gelo);
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.nav-data button:hover {
+  border-color: var(--borda-hover);
+}
+
+.nav-data button.botao-hoje {
+  width: auto;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.nav-data input[type='date'] {
+  padding: 7px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie-elevada);
+  color: var(--gelo);
+  font-size: 13px;
+}
+
 .botao-primario {
   background: var(--azul-acao);
   color: var(--gelo);
@@ -328,39 +368,140 @@ h3 {
   color: var(--link-hover);
 }
 
-.tabela-agenda {
-  width: 100%;
-  border-collapse: collapse;
+/* ---------- Agenda em grade (estilo Google Agenda) ---------- */
+
+.calendario-dia {
+  display: flex;
+  background: var(--superficie-elevada);
+  border: 1px solid var(--borda);
+  border-radius: 11px;
+  overflow: hidden;
 }
 
-.tabela-agenda tr {
-  display: grid;
-  grid-template-columns: 58px 1fr 1.2fr auto;
-  gap: 14px;
-  align-items: center;
+.eixo-horas {
+  position: relative;
+  width: 48px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--borda-interna);
 }
 
-.tabela-agenda td {
-  padding: 12px 4px;
-  border-top: 1px solid var(--borda-interna);
-  font-size: 14px;
-}
-
-.tabela-agenda tr:first-child td {
-  border-top: none;
-}
-
-.tabela-agenda .hora {
+.rotulo-hora {
+  position: absolute;
+  right: 8px;
+  transform: translateY(-50%);
+  font-size: 11px;
   color: var(--aco);
   font-variant-numeric: tabular-nums;
 }
 
-.tabela-agenda .cliente {
-  font-weight: 500;
+.coluna-barbeiro {
+  flex: 1;
+  min-width: 0;
+  border-left: 1px solid var(--borda-interna);
 }
 
-.tabela-agenda .servico {
+.coluna-barbeiro:first-of-type {
+  border-left: none;
+}
+
+.cabecalho-coluna {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--borda-interna);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cabecalho-coluna button {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid var(--borda);
+  background: none;
   color: var(--aco-claro);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.cabecalho-coluna button:hover {
+  background: var(--item-ativo-nav);
+  color: var(--gelo);
+}
+
+.grade-coluna {
+  position: relative;
+}
+
+.linha-hora {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--borda-interna);
+}
+
+.linha-agora {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px solid var(--linha-agora);
+  z-index: 2;
+}
+
+.bloco-agendamento {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  border-radius: 6px;
+  border-left: 3px solid var(--verde-sinal);
+  background: var(--verde-sinal-tinta-fundo);
+  padding: 2px 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1.3;
+  cursor: default;
+}
+
+.bloco-agendamento.terracota {
+  border-left-color: var(--terracota);
+  background: var(--terracota-tinta-fundo);
+}
+
+.bloco-linha1 {
+  display: flex;
+  gap: 5px;
+  overflow: hidden;
+}
+
+.bloco-hora {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--gelo);
+  flex-shrink: 0;
+}
+
+.bloco-cliente {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gelo);
+}
+
+.bloco-servico {
+  color: var(--aco-claro);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .campo-busca {

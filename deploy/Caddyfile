@@ -1,0 +1,13 @@
+# Caddy gera HTTPS automático (Let's Encrypt) pra cada domínio abaixo, desde que
+# os 2 (raiz, api.) tenham registro A/AAAA apontando pro IP deste servidor.
+# Evolution API não aparece aqui de propósito — não precisa ser acessível publicamente,
+# só o backend (na mesma rede Docker) fala com ela. O painel web também não aparece —
+# roda no Vercel, não neste servidor.
+
+{$DOMAIN} {
+    reverse_proxy landing:80
+}
+
+api.{$DOMAIN} {
+    reverse_proxy backend:3001
+}

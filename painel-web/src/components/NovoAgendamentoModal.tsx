@@ -11,19 +11,26 @@ interface Servico {
 }
 
 export function NovoAgendamentoModal({
-  barbeiro,
+  barbeariaId,
+  barbeiros,
+  barbeiroIdInicial,
+  dataInicial,
   onFechar,
   onCriado,
 }: {
-  barbeiro: Barbeiro;
+  barbeariaId: string;
+  barbeiros: Barbeiro[];
+  barbeiroIdInicial: string;
+  dataInicial?: string;
   onFechar: () => void;
   onCriado: () => void;
 }) {
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [servicoId, setServicoId] = useState('');
+  const [barbeiroId, setBarbeiroId] = useState(barbeiroIdInicial);
   const [clienteNome, setClienteNome] = useState('');
   const [clienteTelefone, setClienteTelefone] = useState('');
-  const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
+  const [data, setData] = useState(() => dataInicial ?? new Date().toISOString().slice(0, 10));
   const [hora, setHora] = useState('09:00');
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -32,13 +39,13 @@ export function NovoAgendamentoModal({
     supabase
       .from('servicos')
       .select('id, nome, duracao_minutos')
-      .eq('barbearia_id', barbeiro.barbearia_id)
+      .eq('barbearia_id', barbeariaId)
       .eq('ativo', true)
       .then(({ data }) => {
         setServicos(data ?? []);
         if (data && data.length > 0) setServicoId(data[0].id);
       });
-  }, [barbeiro.barbearia_id]);
+  }, [barbeariaId]);
 
   async function handleSubmit(evento: FormEvent) {
     evento.preventDefault();
@@ -58,7 +65,7 @@ export function NovoAgendamentoModal({
     const { data: cliente, error: erroCliente } = await supabase
       .from('clientes')
       .upsert(
-        { barbearia_id: barbeiro.barbearia_id, telefone: clienteTelefone, nome: clienteNome },
+        { barbearia_id: barbeariaId, telefone: clienteTelefone, nome: clienteNome },
         { onConflict: 'barbearia_id,telefone' },
       )
       .select('id')
@@ -71,8 +78,8 @@ export function NovoAgendamentoModal({
     }
 
     const { error: erroAgendamento } = await supabase.from('agendamentos').insert({
-      barbearia_id: barbeiro.barbearia_id,
-      barbeiro_id: barbeiro.id,
+      barbearia_id: barbeariaId,
+      barbeiro_id: barbeiroId,
       cliente_id: cliente.id,
       servico_id: servicoId,
       inicio: inicio.toISOString(),
@@ -119,6 +126,16 @@ export function NovoAgendamentoModal({
             placeholder="558199999999"
             required
           />
+        </label>
+        <label>
+          Profissional
+          <select value={barbeiroId} onChange={(e) => setBarbeiroId(e.target.value)}>
+            {barbeiros.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.nome}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           Serviço

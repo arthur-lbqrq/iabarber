@@ -18,6 +18,11 @@ evolution-api/tmp/
 database/supabase/.temp/
 database/supabase/.branches/
 
+# Deploy de produção (segredos reais - os .example ficam versionados)
+deploy/.env
+deploy/backend.env
+deploy/evolution-api.env
+
 # Editor / OS
 .DS_Store
 .vscode/*

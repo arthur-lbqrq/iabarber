@@ -229,10 +229,9 @@ número — risco que não pode recair sobre o WhatsApp de um cliente pagante.
   dedicado de verdade é decisão sua de quando fazer (precisa de um chip novo).
 - Os barbeiros (Igor, Tinho) falam com a Bento em modo admin a partir dos próprios
   números pessoais deles — não precisam ser números "públicos" da barbearia.
-- **Horário de funcionamento da IA:** 8h às 20h. Fora desse horário, o backend deve
-  responder com uma mensagem informando o horário de atendimento, sem acionar o
-  Claude/tools (evita custo de API fora do horário e deixa claro pro cliente quando
-  esperar resposta). **[Implementado nesta sessão — ver Log de progresso.]**
+- **Horário de funcionamento da IA:** revertido em 2026-09-02 — a IA responde 24/7 agora,
+  sem restrição de horário (decisão original de 8h-20h ficou só um tempo, ver Log de
+  progresso pro histórico de por que existiu e por que foi removida).
 
 ## Onde estamos agora
 Passos 1 e 2 do roteiro feitos (Evolution API conectada a um WhatsApp real de teste;
@@ -1014,6 +1013,349 @@ pediu pra fazer as 3 e acrescentar uma de Serviços também.
   edição de serviço de ponta a ponta (editar preço existente + criar um novo), reset
   do banco no final pra tirar os dados de teste.
 
+### 2026-09-02 — migração pro PC Windows (Docker Desktop) + Supabase cloud + prep de deploy
+Você trocou de máquina (notebook Ubuntu → PC Windows, `c:\Users\ArT\projetos\iabarber\iabarber`,
+Docker Desktop) e pediu pra ir rumo ao deploy pra disponibilizar o sistema pra barbearia
+piloto testar de verdade. Como isso mistura passos grátis/reversíveis com passos pagos/que
+só você pode autorizar (contas novas, cartão de crédito), separei em 3 decisões antes de
+mexer: **(1)** WhatsApp continua no seu número pessoal por enquanto (número dedicado fica
+pra depois, como já estava documentado); **(2)** banco vai direto pra Supabase **cloud**
+em vez de recriar o Supabase local aqui, já que o destino é produção mesmo; **(3)** conta
+da DigitalOcean **ainda não existe** — isso envolve cartão de crédito, então é ação sua,
+não fiz nem tentei fazer por você.
+
+- **Confirmado que este PC começou com clone limpo do repo:** nenhum `.env` de nenhuma
+  pasta veio (todos gitignored, como esperado), nem Supabase local, nem sessão do
+  WhatsApp — tudo isso só existia no notebook Ubuntu. Docker Desktop já estava instalado
+  e rodando (v29.7.2); havia um container `tino-postgres` de outro projeto seu ocupando a
+  porta 5432 do host, que não toquei (o Postgres da Evolution API só usa `expose`, sem
+  publicar porta, exatamente pra evitar esse tipo de colisão — já valeu a decisão de
+  design de quando criamos o compose original).
+- **Evolution API reerguida do zero neste PC:** `evolution-api/.env` recriado com
+  `AUTHENTICATION_API_KEY` e senha do Postgres novas (geradas com `openssl rand`, que o
+  Git Bash deste PC já tem via `/mingw64/bin/openssl` — não precisei instalar nada).
+  `docker compose up -d` subiu os 3 containers de primeira, sem repetir nenhum dos
+  problemas de imagem/versão que tinham aparecido no notebook.
+- **WhatsApp reconectado com o mesmo número pessoal** (`558193552338`), via pairing code
+  (fui direto por esse caminho — QR code expira rápido e da vez anterior pairing code deu
+  mais certo). Precisei de um `DELETE /instance/logout` antes (mesma pegadinha de antes:
+  `/instance/connect?number=...` só respeita o parâmetro `number` se o estado já estiver
+  `close`). Confirmado `state: "open"` e `ownerJid` batendo. Como é vínculo de aparelho
+  novo pro WhatsApp, ele resincronizou histórico de novo (contatos/chats/mensagens) pro
+  Postgres interno deste PC — mesmo comportamento documentado da primeira vez, não é nada
+  que pedimos explicitamente; esse Postgres local passa a ter uma cópia do seu WhatsApp
+  pessoal de novo, mesmo tratamento de cuidado de antes se aplica.
+- **`npm install` rodado em `backend/`, `painel-web/`, `landing/` e `database/`** — nenhum
+  tinha `node_modules` ainda neste PC. Fixei a versão do Supabase CLI também aqui
+  (`database/package.json`, mesma versão `^2.116.0` de antes).
+- **Banco migrado pra Supabase cloud** (decisão 2 acima), em vez de recriar o local:
+  - Você criou a conta e um projeto novo no dashboard do Supabase (ref
+    `yfrmpxjgrdczyzthzrkh`) e gerou um Personal Access Token — o login interativo do CLI
+    (`supabase login`) não funciona neste ambiente porque exige navegador/TTY, então usei
+    o token direto (`SUPABASE_ACCESS_TOKEN=... npx supabase link --project-ref ...`), sem
+    precisar de fluxo interativo.
+  - `npx supabase db push` aplicou as 2 migrations existentes (schema inicial +
+    admin/preços) direto no banco cloud, e `--include-seed` aplicou o `seed.sql` (dados
+    reais da Barbearia Piloto, Igor, Tinho, 13 serviços) — tudo sem precisar de senha do
+    Postgres, só o access token + project ref.
+  - **Chaves de API:** o projeto novo já vem no formato novo do Supabase
+    (`sb_publishable_...` no lugar de `anon`, `sb_secret_...` no lugar de `service_role`)
+    — são compatíveis com o `@supabase/supabase-js` como substitutos diretos, usei
+    normalmente como `SUPABASE_SERVICE_ROLE_KEY`/`VITE_SUPABASE_ANON_KEY`. Pegadinha que
+    aconteceu no meio do caminho: você colou a mesma chave (`anon`) duas vezes por engano
+    em vez de anon + secret — percebi decodificando o JWT localmente (`role: "anon"` nos
+    dois) antes de tentar usar, e pedi só a que faltava.
+  - `backend/.env` e `painel-web/.env` recriados apontando pro projeto cloud (URL
+    `https://yfrmpxjgrdczyzthzrkh.supabase.co`) + `ANTHROPIC_API_KEY` (você recuperou a
+    chave salva) + credenciais da Evolution API local.
+  - **`database/criar-usuario-teste.sh` generalizado pra funcionar local OU cloud:**
+    trocou o `docker exec ... psql` (que só existe no ambiente local, contra o container
+    `supabase_db_database`) por um `PATCH` na REST API (PostgREST) usando a service key —
+    funciona igual nos dois ambientes agora, sem depender de container específico. Rodei
+    com `API_URL`/`SERVICE_KEY` do projeto cloud exportados: recriou o login
+    `igor@barbeariapiloto.local` / `iabarber123` vinculado ao barbeiro real.
+  - **Testado de ponta a ponta, sem gastar chamada da Anthropic:** script descartável
+    conectando com a service key confirmou leitura de `barbearias`/`barbeiros` reais
+    (apaguei o script depois). Testei também a RLS pela REST API pura: sem login → `[]`;
+    logado como Igor → só a barbearia dele. Backend subiu (`npm run dev`) e respondeu
+    `/health` normalmente. Painel web subiu (`npm run dev -- --host`, porta 5173) e
+    serviu o HTML sem erro.
+  - **Não instalei Playwright neste PC** só pra um teste pontual (não era dependência já
+    presente aqui) — validei o fluxo de login/RLS direto pela API REST em vez de abrir
+    navegador, que cobre o que importava (autenticação real + política de RLS real).
+- **Preparação de deploy pra DigitalOcean (decisão 3 acima — sem depender da conta
+  existir ainda), tudo novo em `deploy/`:**
+  - `backend/Dockerfile` (build multi-stage, `tsc` → `node dist/index.js`),
+    `painel-web/Dockerfile` e `landing/Dockerfile` (build Vite → serve estático via
+    `nginx:1.27-alpine`, com `nginx.conf` de cada um fazendo fallback de SPA). As 3
+    imagens **buildaram limpo e eu testei rodando** (painel/landing servindo HTML via
+    `docker run` numa porta temporária, removidas depois; backend só buildado, já que
+    rodar exigiria as env vars de produção que ainda não existem de verdade).
+  - `deploy/docker-compose.prod.yml`: junta evolution-api + postgres/redis internos +
+    backend + painel-web + landing + **Caddy** (reverse proxy com HTTPS automático via
+    Let's Encrypt) numa rede Docker só, pensado pra rodar com um único
+    `docker compose -f docker-compose.prod.yml --env-file .env up -d --build` no droplet.
+    Evolution API **não** fica exposta publicamente no Caddy — só backend/painel/landing,
+    pelos motivos já documentados (não precisa, e reduz superfície de ataque).
+  - `deploy/Caddyfile`: 3 blocos (`$DOMAIN` → landing, `app.$DOMAIN` → painel-web,
+    `api.$DOMAIN` → backend), domínio via variável de ambiente (`{$DOMAIN}`), já que você
+    ainda não tem domínio comprado — isso é parametrizável, preenche quando tiver.
+  - `deploy/.env.example`, `deploy/backend.env.example`, `deploy/evolution-api.env.example`
+    criados como referência (sem segredos reais) — os arquivos reais (`deploy/.env`,
+    `deploy/backend.env`, `deploy/evolution-api.env`) ficam de fora do git (adicionei as
+    3 entradas no `.gitignore` da raiz, que antes só cobria `.env` exato e não pegava
+    `backend.env`/`evolution-api.env` sem o ponto na frente).
+  - **Mudança de código real que isso exigiu:** o CORS do backend
+    (`backend/src/index.ts`) só liberava `localhost`/`127.0.0.1`/rede local — sem isso o
+    painel web não teria como chamar o backend a partir de um domínio real. Adicionei
+    `FRONTEND_ORIGIN` como variável de ambiente opcional (`backend/src/config/env.ts`) que
+    estende a lista de origens permitidas — em produção aponta pra
+    `https://app.SEUDOMINIO.com`. Testado: `tsc --noEmit` limpo, backend local continuou
+    respondendo normalmente depois do hot-reload do `tsx watch`.
+  - `WEBHOOK_GLOBAL_ENABLED=false` por padrão no `deploy/evolution-api.env.example`, na
+    mesma linha de cautela usada localmente (ligar só depois de confirmar que o backend
+    de produção está saudável, não de cara).
+- **O que ainda falta pra ir ao ar de verdade com a barbearia piloto (nesta ordem):**
+  1. Você criar a conta na DigitalOcean (cartão de crédito — ação sua) e um droplet.
+  2. Comprar/decidir um domínio e apontar os 3 registros DNS (`SEUDOMINIO.com`,
+     `app.SEUDOMINIO.com`, `api.SEUDOMINIO.com`) pro IP do droplet.
+  3. Copiar os `.env.example` de `deploy/` pros arquivos reais no droplet, preenchidos
+     com credenciais de produção (podem ser as mesmas do Supabase cloud e Anthropic já
+     em uso, ou novas se preferir isolar).
+  4. Subir a stack (`docker compose -f docker-compose.prod.yml --env-file .env up -d
+     --build`), confirmar Caddy emitiu certificado HTTPS pros 3 domínios.
+  5. Reconectar o WhatsApp nesse ambiente novo (vai pedir pairing code de novo, é
+     comportamento normal de qualquer ambiente novo) e só então ligar
+     `WEBHOOK_GLOBAL_ENABLED=true`.
+  6. **Antes de considerar isso pronto pra cliente pagante de verdade** (não
+     necessariamente pro teste piloto): trocar os telefones placeholder de Igor/Tinho no
+     seed (`558100000010`/`11`) pelos números reais deles, senão o modo admin via
+     WhatsApp não reconhece ninguém; e lembrar da migração pra WhatsApp Business API
+     oficial antes de vender pra qualquer barbearia além da piloto (já documentada acima).
+- Backend (porta 3001) e painel web (porta 5173, com `--host`) ficaram rodando em
+  background nesta sessão, iguais ao padrão das sessões anteriores.
+
+### 2026-09-02 (continuação) — validar antes de gastar: webhook local ligado + IA 24/7
+Antes de criar a conta na DigitalOcean e assumir custo mensal, você quis confirmar que o
+fluxo completo (WhatsApp real → IA → grava no Supabase cloud) funciona rodando só local.
+Fez sentido — é exatamente o tipo de validação que a "Prioridade de custos" deste arquivo
+pede (provar antes de pagar).
+
+- **Liguei o webhook local com sua confirmação explícita** (mesma cautela das sessões
+  anteriores — isso ativa resposta automática de verdade pra **qualquer pessoa** que
+  mandar mensagem pro seu WhatsApp pessoal conectado, não só você): `WEBHOOK_GLOBAL_URL=
+  http://host.docker.internal:3001/webhook/whatsapp` e `WEBHOOK_GLOBAL_ENABLED=true` no
+  `evolution-api/.env`, container recriado. A primeira tentativa de recriar o container
+  foi **bloqueada automaticamente** pelo classificador de permissões do Claude Code
+  (reconheceu como ação de efeito real/público) — só segui depois de você confirmar
+  "liga" explicitamente. Confirmado depois: instância reconectou sozinha
+  (`state: "open"`) e o container da Evolution API alcança o backend
+  (`host.docker.internal:3001/health` respondendo de dentro do container).
+- **Removida a restrição de horário de atendimento (8h-20h)** — você pediu "abre pra
+  funcionar 24/7". Como a frase era ambígua (podia significar só tirar a trava de
+  horário do código, ou também deixar o bot de fato no ar sem parar), perguntei e você
+  confirmou que era só o primeiro: tirar a trava de horário. Deixei claro que
+  disponibilidade 24/7 *de verdade* (sem depender do PC ficar ligado, Docker Desktop
+  aberto, terminal do backend não fechar) só vem depois do deploy de produção — rodando
+  local, se o PC dormir/reiniciar ou você fechar o terminal do `npm run dev`, o bot para
+  de responder até você subir tudo de novo.
+  - `backend/src/ai/horarioAtendimento.ts` **apagado** (não só desativado — ficou sem
+    nenhum outro uso depois de tirar a chamada do webhook, e o projeto prefere deletar
+    código morto a comentar/guardar "pra manter"). `backend/src/webhook/whatsapp.ts`
+    voltou a chamar `gerarResposta` direto, sem a checagem de horário antes.
+  - `tsc --noEmit` limpo depois da remoção; backend recarregou sozinho (`tsx watch`) e
+    continuou respondendo `/health` normalmente.
+  - Documentação da decisão original (8h-20h) mantida no histórico deste log pra registrar
+    o porquê ela existiu e por que foi revertida, mas a seção "Número de WhatsApp e
+    horário de funcionamento da IA" acima já reflete o estado atual (sem restrição).
+- **Próximo passo (retomar daqui):** você ainda vai mandar a mensagem de teste de verdade
+  pro WhatsApp conectado pra validar o agendamento completo (criar via conversa real,
+  conferir a linha em `agendamentos` no Supabase cloud/painel). Isso ainda não foi feito
+  nesta sessão — parei aqui esperando você mandar a mensagem.
+- **Lembrete de custo:** com o webhook ligado, toda mensagem real que chegar (de
+  qualquer contato) aciona uma chamada paga à Anthropic. Pra um teste curto tudo bem;
+  se for demorar pra testar, vale desligar de novo (`WEBHOOK_GLOBAL_ENABLED=false` +
+  recriar o container) e religar só na hora de testar.
+- **Webhook desligado de novo** a seu pedido logo depois ("desliga") —
+  `WEBHOOK_GLOBAL_ENABLED=false`, container recriado, WhatsApp continuou conectado.
+
+### 2026-09-02 (continuação) — bug real: a IA esquecia a conversa a cada mensagem
+Você testou de verdade e reportou que "a IA está se esquecendo do que o cliente fala".
+Bug confirmado direto no código, não achismo:
+
+- **Causa raiz:** `gerarResposta()` em `backend/src/ai/claude.ts` montava o array de
+  mensagens do zero em toda chamada (`const mensagens = [{ role: 'user', content:
+  mensagemDoUsuario }]`) — cada mensagem nova do WhatsApp virava uma conversa inteiramente
+  nova pro Claude, sem nenhum turno anterior. Não era comportamento sutil do modelo, era
+  o código nunca ter guardado histórico nenhum.
+- **Correção:** histórico de conversa por telefone guardado em memória do processo
+  (`Map<telefone, MessageParam[]>`, até 20 mensagens por telefone, mais antigas descartadas
+  pra não deixar o contexto/custo crescer sem limite). Ao gerar uma resposta, o histórico
+  anterior daquele telefone é prependado antes da mensagem nova; ao final (resposta final
+  em texto, ou quando bate o limite de rodadas de ferramenta), o histórico atualizado é
+  salvo de volta.
+  - **Limitação consciente, não escondida:** isso é em memória do processo, não no banco —
+    se o backend reiniciar (crash, `tsx watch` recarregando por causa de outro arquivo,
+    deploy novo), o histórico de todas as conversas em andamento some e o cliente começa
+    "do zero" na próxima mensagem. Aceitável nesta fase de teste local; se isso incomodar
+    depois de ir pra produção (backend reiniciando com frequência, cliente notando que o
+    Bento "esquece"), o próximo passo seria persistir o histórico em uma tabela nova no
+    Supabase em vez de em memória — não fiz isso agora pra não adicionar complexidade e
+    uma tabela nova sem você ter pedido.
+- **Testado de verdade** com um script descartável chamando `gerarResposta` direto (sem
+  passar pelo WhatsApp/Evolution, mais barato): mensagem 1 "Meu nome é Arthur", mensagem 2
+  "Você lembra meu nome?" → respondeu "Arthur" corretamente na segunda chamada. Script
+  apagado depois do teste. `tsc --noEmit` limpo, backend recarregou saudável.
+
+### 2026-09-02 (continuação) — Agenda do painel agora navega entre dias
+Você pediu pra dar pra ver mais dias na Agenda, não só hoje (fazia sentido: um dos
+agendamentos de teste que você criou pelo WhatsApp caiu num dia diferente de hoje e
+não tinha como ver ele no painel antes disso).
+
+- `painel-web/src/pages/Agenda.tsx`: adicionei navegação por dia no cabeçalho — botões
+  `‹`/`›` (dia anterior/seguinte), um `<input type="date">` pra pular direto pra
+  qualquer data, e um botão "Hoje" que só aparece quando você não está mais no dia
+  atual (fica escondido quando já está nele, não faz sentido clicar em algo que não
+  muda nada). A consulta ao Supabase passou a usar a data selecionada em vez de sempre
+  "hoje" (`gte(dataSelecionada)/lte(fimDoDia(dataSelecionada))`).
+  - **Pegadinha evitada de novo:** o `<input type="date">` usa formato `yyyy-mm-dd`
+    local — usei um formatador manual (`paraInputDate`) em vez de
+    `toISOString().slice(0,10)`, pela mesma razão já documentada no motor de regras
+    (`toISOString()` converte pra UTC e acerta o dia errado perto da meia-noite no
+    fuso de Brasília).
+  - Card de métrica "Hoje" e a seção "Próximos horários" mudam de rótulo
+    (`"Hoje"`/`"Nesse dia"`, `"Próximos horários"`/`"Horários"`) dependendo se o dia
+    selecionado é hoje ou não — evita a mensagem ficar estranha quando você está
+    olhando pra um dia passado ou futuro.
+  - `NovoAgendamentoModal` ganhou uma prop opcional `dataInicial` — clicar em "Novo
+    agendamento" enquanto navega por outro dia já pré-preenche a data certa no
+    formulário, em vez de sempre sugerir hoje.
+- **Testado com Playwright de verdade** (instalado temporariamente só pra esse teste
+  com `npm install --no-save playwright`, sem alterar `package.json`/lockfile, e
+  desinstalado depois): login real, screenshot do dia de hoje, clique em "próximo dia",
+  confirma que o botão "Hoje" aparece/some corretamente ao navegar/voltar. O screenshot
+  do dia seguinte (3 de setembro) mostrou de verdade um agendamento real que você tinha
+  criado testando pelo WhatsApp (`558196311209`, Corte de cabelo, 15h, status
+  Cancelado) — prova que a navegação funciona com dado real, não só mockado. Zero erros
+  de console. `tsc -b` limpo.
+- Não apaguei esse agendamento de teste do banco — é dado real seu, fica ao seu
+  critério limpar ou manter.
+
+### 2026-09-02 (continuação) — Agenda virou grade estilo Google Agenda, com todos os barbeiros
+Você reportou que faltava o agendamento de "Sobrancelha" que também tinha testado.
+Investiguei direto no banco antes de mexer em código: existiam sim 2 agendamentos reais
+naquele dia — um do Igor (Corte de cabelo, cancelado) e um do Tinho (Sobrancelha,
+cliente "Cami", confirmado). A `Agenda.tsx` só consultava
+`.eq('barbeiro_id', barbeiro.id)` — ou seja, o barbeiro logado só via a própria agenda,
+nunca a do colega. Confirmado o motivo antes de escrever qualquer linha.
+
+Você também pediu mais informações (o barbeiro de cada agendamento) e um visual mais
+parecido com o Google Agenda. As duas coisas empurravam pra mesma solução: mostrar a
+barbearia inteira numa grade de horários, com uma coluna por profissional.
+
+- `painel-web/src/pages/Agenda.tsx` reescrita:
+  - A consulta de agendamentos passou a filtrar por `barbearia_id` (não mais
+    `barbeiro_id`) — mostra os dois profissionais. Uma consulta nova busca os
+    `barbeiros` ativos da barbearia pra virarem colunas.
+  - Grade de horário fixa 8h-20h (mesmo intervalo que já era usado como "horário de
+    atendimento" antes, cobre com folga o expediente real seg-sex 9h-18h/sáb 9h-12h),
+    64px por hora, uma coluna por barbeiro com cabeçalho (nome + botão "+" pra criar
+    agendamento direto naquela coluna) e os agendamentos posicionados/dimensionados
+    por horário e duração real (`top`/`height` calculados a partir de `inicio`/`fim`).
+    Linha vermelha horizontal marcando a hora atual, só quando o dia selecionado é hoje.
+  - Cor do bloco por status, reaproveitando a mesma lógica de chip verde/terracota
+    de antes (confirmado/concluído = verde, cancelado/não-compareceu = terracota),
+    agora como cor de fundo + borda esquerda em vez de um chip de texto — mais perto
+    da linguagem visual do Google Agenda. `title` no bloco mostra os detalhes completos
+    no hover, já que blocos de serviço curto (ex.: 15min) não têm altura pra caber
+    tudo por extenso.
+  - **Bug de alinhamento pego e corrigido durante o teste visual:** o rótulo "08:00" do
+    eixo de horas ficava sobreposto ao cabeçalho das colunas — a causa era usar
+    `padding-top` no container pra "empurrar" os rótulos, mas o `top` de um elemento
+    `position: absolute` é relativo à borda do container, não é afetado pelo padding
+    dele. Troquei por somar a altura do cabeçalho (`37px`) direto no `top` calculado de
+    cada rótulo, e a linha some do lugar certo.
+  - `NovoAgendamentoModal` ganhou um campo "Profissional" (select) — antes o modal só
+    criava agendamento pro barbeiro logado; agora aceita `barbeiros`/`barbeiroIdInicial`
+    e deixa escolher, pré-selecionando o profissional da coluna onde o "+" foi clicado
+    (ou o barbeiro logado, se veio do botão geral "Novo agendamento" do cabeçalho).
+  - A tabela antiga (`.tabela-agenda`) foi removida do JSX e o CSS morto dela apagado
+    junto — sem uso duplo de dois estilos de lista pra mesma informação.
+- **Testado com Playwright de verdade de novo** (instalado/desinstalado temporariamente
+  com `--no-save`, sem tocar `package.json`/lockfile): login real, screenshot do dia
+  atual (grade vazia certinha), navegação pro dia com os 2 agendamentos reais — os dois
+  apareceram nas colunas certas (Igor: Corte de cabelo cancelado; Tinho: Sobrancelha
+  confirmado, cliente "Cami"), modal abrindo com o seletor de profissional funcionando.
+  Encontrei e corrigi o bug do "08:00" sobreposto **durante** esse teste, antes de dar
+  como pronto — não foi só rodar e aceitar o primeiro resultado.
+- `tsc -b` limpo nos dois componentes alterados.
+
+### 2026-09-02 (continuação) — sessão anterior caiu: processos locais mortos + bug real achado no log
+Ao retomar, `backend` (porta 3001) e `painel-web` (porta 5173) não respondiam mais —
+os processos em background da sessão anterior morreram junto com ela (os containers
+Docker da Evolution API sobreviveram normalmente, porque são gerenciados pelo Docker
+Desktop, não pelo processo do Claude Code). Subi os dois de novo
+(`npm run dev` em cada pasta).
+
+- **Bug real encontrado no log do backend antes de descartar o arquivo:** um erro 400
+  real da Anthropic — `unexpected tool_use_id found in tool_result blocks... Each
+  tool_result block must have a corresponding tool_use block in the previous message`.
+  Causa: o corte de histórico por contagem (`slice(-20)`) que adicionei nesta mesma
+  sessão pra corrigir a memória da conversa podia cortar bem no meio de um par
+  `tool_use`/`tool_result` — a API da Anthropic exige que todo `tool_result` tenha o
+  `tool_use` correspondente na mensagem anterior, senão rejeita a chamada inteira.
+  **Corrigido em `backend/src/ai/claude.ts`:** depois de cortar pelas últimas 20
+  mensagens, `salvarHistorico` agora descarta do início do array enquanto a primeira
+  mensagem for um `tool_result` órfão (checado com `temToolResult`), garantindo que o
+  histórico salvo sempre comece num ponto válido. `tsc --noEmit` limpo depois da
+  correção.
+
+### 2026-09-02 (continuação) — painel vai pro Vercel; backend/Evolution API continuam locais por enquanto
+Você decidiu não criar a conta na DigitalOcean por enquanto — backend e Evolution API
+continuam rodando aqui no Docker Desktop mesmo, e o painel web vai ser hospedado no
+Vercel (grátis pro uso esperado, não depende de criar conta com cartão nem de comprar
+domínio pra já ficar acessível de qualquer lugar).
+
+- **`deploy/docker-compose.prod.yml`, `deploy/Caddyfile` e `deploy/.env.example`
+  atualizados:** o serviço `painel-web` (e o build-arg `VITE_SUPABASE_*` que ele usava)
+  foi removido de todos os três — ficaria conflitando com o deploy no Vercel, já que
+  seria a mesma aplicação publicada em dois lugares diferentes. `backend`,
+  `evolution-api` e `landing` continuam preparados do jeito que já estavam, pra quando
+  você decidir criar a conta na DigitalOcean.
+- **CORS do backend generalizado pra aceitar múltiplas origens:** `FRONTEND_ORIGIN`
+  (em `backend/src/config/env.ts`) virou uma lista separada por vírgula
+  (`frontendOrigins`) em vez de uma string única — importante porque o painel no
+  Vercel vai ter uma origem diferente da rede local, e pode um dia ter mais de uma
+  (domínio próprio, preview deployments). `backend/.env` ganhou a variável
+  `FRONTEND_ORIGIN` vazia, com comentário lembrando de preencher com a URL real do
+  Vercel assim que o deploy existir.
+- **Limitação real, não escondida:** a aba "Conversas" do painel depende do backend
+  (`/api/conversas`, que por sua vez lê o Postgres interno da Evolution API) — como o
+  backend só roda local nesta máquina, essa aba **não vai funcionar** quando o painel
+  for acessado do Vercel a partir de outro dispositivo (funciona só se você abrir o
+  link do Vercel no navegador deste mesmo PC, já que aí `localhost`/CORS resolvem
+  igual). O componente já trata isso de forma limpa (mostra "Não consegui falar com o
+  backend... Ele está rodando?" em vez de quebrar a tela) — não precisei mudar nada
+  pra isso não virar um erro feio. As outras abas (Agenda, Clientes, Equipe, Serviços,
+  Horários) falam direto com o Supabase cloud, então funcionam normalmente de
+  qualquer lugar.
+- **Não criei o projeto no Vercel nem fiz o deploy** — isso exige conta/login que só
+  você tem. Passo a passo pra você (ou peça pra eu fazer a parte que dá, tipo o
+  commit/push):
+  1. Garantir que o código está commitado e no GitHub (`git remote -v` confirma que o
+     repo já é `github.com/arthur-lbqrq/iabarber`).
+  2. Em vercel.com → **Add New → Project** → importar esse repositório.
+  3. Como é um monorepo, definir **Root Directory = `painel-web`** na tela de
+     configuração do projeto (o Vercel detecta Vite automaticamente a partir daí —
+     build command e output directory não precisam de ajuste manual).
+  4. Em **Environment Variables**, adicionar `VITE_SUPABASE_URL`,
+     `VITE_SUPABASE_ANON_KEY` (os mesmos valores de `painel-web/.env`) e
+     `VITE_BACKEND_URL` (aponte pra `http://localhost:3001` sabendo da limitação da
+     aba Conversas acima, ou deixe em branco/aponte pra uma URL futura quando o
+     backend for pra produção).
+  5. Deploy. Depois, pegar a URL que o Vercel gerar e colar em `FRONTEND_ORIGIN` no
+     `backend/.env` (e reiniciar o backend) pra liberar o CORS.
+
 ### Como usar a stack do Supabase local no dia a dia
 ```bash
 cd /home/art/iabarber/database
@@ -1026,30 +1368,48 @@ npx supabase migration new nome_da_migration   # criar uma nova migration versio
 Studio (interface visual): http://127.0.0.1:54323
 
 ### Como conferir/subir o projeto inteiro
+**Nota (2026-09-02): desde a migração pro PC Windows, o banco ativo é o Supabase
+CLOUD** (`https://yfrmpxjgrdczyzthzrkh.supabase.co`), não mais o local — os comandos de
+`npx supabase status`/`db reset` da seção acima seguem valendo se você quiser rodar um
+Supabase local à parte pra experimentar algo sem afetar o banco de produção, mas o dia a
+dia (`backend/.env`, `painel-web/.env`) aponta pro cloud.
+
 ```bash
-# Evolution API (WhatsApp)
-cd /home/art/iabarber/evolution-api
+# Evolution API (WhatsApp) — caminho é o deste PC (Windows, Docker Desktop)
+cd c:/Users/ArT/projetos/iabarber/iabarber/evolution-api
 docker compose ps && docker compose logs -f
 curl http://localhost:8080
 
-# Supabase local
-cd /home/art/iabarber/database
-npx supabase status
-./criar-usuario-teste.sh    # só depois de um `supabase db reset`
+# Banco: Supabase cloud, não precisa "subir" nada — só aplicar migrations quando mudar
+cd c:/Users/ArT/projetos/iabarber/iabarber/database
+SUPABASE_ACCESS_TOKEN=<seu personal access token> npx supabase db push
+# recriar login de teste (depois de qualquer mudança no projeto cloud que apague o vínculo):
+API_URL=https://yfrmpxjgrdczyzthzrkh.supabase.co SERVICE_KEY=<secret key> ./criar-usuario-teste.sh
 
-# Backend (webhook + regras) — precisa estar rodando pro WhatsApp responder
-cd /home/art/iabarber/backend
+# Backend (webhook + IA) — precisa estar rodando pro WhatsApp responder
+cd c:/Users/ArT/projetos/iabarber/iabarber/backend
 npm run dev                  # porta 3001
 
 # Painel web
-cd /home/art/iabarber/painel-web
-npm run dev -- --host        # porta 5173/5174 (ou a próxima livre)
-# login de teste: ze@barbeariateste.local / iabarber123
+cd c:/Users/ArT/projetos/iabarber/iabarber/painel-web
+npm run dev -- --host        # porta 5173 (ou a próxima livre)
+# login de teste: igor@barbeariapiloto.local / iabarber123
 
 # Landing page (site público, sem login)
-cd /home/art/iabarber/landing
-npm run dev -- --host        # porta 5175 nesta sessão
+cd c:/Users/ArT/projetos/iabarber/iabarber/landing
+npm run dev -- --host
 ```
+
+### Como subir a stack de produção (droplet DigitalOcean, quando a conta existir)
+```bash
+cd deploy
+cp .env.example .env                       # preencher DOMAIN, chaves do Supabase cloud
+cp backend.env.example backend.env         # preencher Anthropic, Evolution, Supabase, FRONTEND_ORIGIN
+cp evolution-api.env.example evolution-api.env   # preencher AUTHENTICATION_API_KEY, senha do Postgres
+docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+```
+Ver o log de 2026-09-02 acima pra checklist completo antes de ir ao ar de verdade (conta
+DO, domínio, DNS, reconectar WhatsApp nesse ambiente, ligar webhook por último).
 
 ## Preferências de trabalho
 - Comunicação em português do Brasil.

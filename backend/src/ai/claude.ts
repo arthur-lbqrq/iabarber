@@ -12,6 +12,33 @@ const MODELO = 'claude-sonnet-5';
 const MAX_TOKENS_RESPOSTA = 400;
 const MAX_RODADAS_DE_FERRAMENTA = 4; // trava de segurança contra loop e custo
 
+// Histórico da conversa por telefone, em memória do processo — cada chamada a
+// gerarResposta partia do zero, então o Claude nunca via o que tinha sido dito antes.
+// Guardar aqui (e não no banco) é suficiente pro estágio atual do MVP: some se o
+// backend reiniciar, o que é uma perda aceitável agora, mas não seria numa versão que
+// já dependesse de uptime contínuo em produção.
+const HISTORICO_MAX_MENSAGENS = 20;
+const historicoPorTelefone = new Map<string, MessageParam[]>();
+
+function temToolResult(mensagem: MessageParam): boolean {
+  return (
+    Array.isArray(mensagem.content) &&
+    mensagem.content.some((bloco) => typeof bloco === 'object' && bloco !== null && 'type' in bloco && bloco.type === 'tool_result')
+  );
+}
+
+function salvarHistorico(telefone: string, mensagens: MessageParam[]): void {
+  let recorte = mensagens.slice(-HISTORICO_MAX_MENSAGENS);
+  // Um corte por contagem pode começar bem no meio de um par tool_use/tool_result —
+  // a API rejeita um "tool_result" sem o "tool_use" correspondente na mensagem
+  // anterior. Descarta do início até a primeira mensagem que não seja um resultado
+  // órfão (foi exatamente esse bug que derrubou o backend com um erro 400 da Anthropic).
+  while (recorte.length > 0 && temToolResult(recorte[0])) {
+    recorte = recorte.slice(1);
+  }
+  historicoPorTelefone.set(telefone, recorte);
+}
+
 async function montarSystemPromptCliente(nomeBarbearia: string): Promise<string> {
   const agora = new Date();
   const dataHoje = agora.toLocaleDateString('pt-BR', {
@@ -94,7 +121,10 @@ export async function gerarResposta(
     ? ({ tipo: 'admin' as const, barbeariaId, adminId: admin.id })
     : ({ tipo: 'cliente' as const, barbeariaId, clienteTelefone: telefoneRemetente });
 
-  const mensagens: MessageParam[] = [{ role: 'user', content: mensagemDoUsuario }];
+  const mensagens: MessageParam[] = [
+    ...(historicoPorTelefone.get(telefoneRemetente) ?? []),
+    { role: 'user', content: mensagemDoUsuario },
+  ];
 
   for (let rodada = 0; rodada < MAX_RODADAS_DE_FERRAMENTA; rodada++) {
     const resposta = await anthropic.messages.create({
@@ -106,6 +136,8 @@ export async function gerarResposta(
     });
 
     if (resposta.stop_reason !== 'tool_use') {
+      mensagens.push({ role: 'assistant', content: resposta.content });
+      salvarHistorico(telefoneRemetente, mensagens);
       const bloco = resposta.content.find((b) => b.type === 'text');
       return bloco?.type === 'text' ? bloco.text : '(resposta sem texto)';
     }
@@ -132,5 +164,6 @@ export async function gerarResposta(
     mensagens.push({ role: 'user', content: resultados });
   }
 
+  salvarHistorico(telefoneRemetente, mensagens);
   return 'Deixa eu confirmar isso com calma e já te respondo — pode mandar de novo em instantes?';
 }

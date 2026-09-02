@@ -17,4 +17,11 @@ export const env = {
   evolutionInstanceName: required('EVOLUTION_INSTANCE_NAME'),
   supabaseUrl: required('SUPABASE_URL'),
   supabaseServiceRoleKey: required('SUPABASE_SERVICE_ROLE_KEY'),
+  // Origens extras do painel web que o CORS deve liberar (ex.: o domínio do Vercel),
+  // separadas por vírgula. Opcional porque em dev local o CORS já libera
+  // localhost/127.0.0.1/rede local sem precisar disso.
+  frontendOrigins: (process.env.FRONTEND_ORIGIN ?? '')
+    .split(',')
+    .map((origem) => origem.trim())
+    .filter(Boolean),
 };
