@@ -38,6 +38,25 @@ export interface Servico {
   ativo: boolean;
 }
 
+export interface ConfiguracaoIA {
+  nomeBarbearia: string;
+  iaNome: string;
+  iaTomVoz: string | null;
+  retencaoAutomaticaAtiva: boolean;
+  retencaoMensagemTemplate: string | null;
+  retencaoJanelaDias: number;
+  atendimento24h: boolean;
+  atendimentoHoraInicio: string;
+  atendimentoHoraFim: string;
+}
+
+export interface NumeroBloqueado {
+  id: string;
+  telefone: string;
+  motivo: string | null;
+  created_at: string;
+}
+
 export const NOMES_DIA_SEMANA = [
   'Domingo',
   'Segunda',

@@ -9,6 +9,7 @@ import { Conversas } from './Conversas';
 import { Clientes } from './Clientes';
 import { Equipe } from './Equipe';
 import { Servicos } from './Servicos';
+import { Configuracoes } from './Configuracoes';
 
 export function Dashboard({ user }: { user: User }) {
   const [barbeiro, setBarbeiro] = useState<Barbeiro | null>(null);
@@ -55,6 +56,7 @@ export function Dashboard({ user }: { user: User }) {
         {aba === 'clientes' && <Clientes />}
         {aba === 'equipe' && <Equipe />}
         {aba === 'servicos' && <Servicos barbeiro={barbeiro} />}
+        {aba === 'configuracoes' && <Configuracoes />}
         {aba === 'horarios' && (
           <>
             <header className="cabecalho-painel">

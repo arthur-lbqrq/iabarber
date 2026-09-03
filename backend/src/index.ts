@@ -7,6 +7,8 @@ import { assinaturasRouter } from './api/assinaturas.js';
 import { indicadoresRouter } from './api/indicadores.js';
 import { iniciarCronRetencao } from './retencao/cron.js';
 import { publicoRouter } from './api/publico.js';
+import { numerosBloqueadosRouter } from './api/numerosBloqueados.js';
+import { configuracaoIARouter } from './api/configuracaoIA.js';
 
 // CORS mínimo, sem dependência nova — só pro painel web (dev local/rede local)
 // conseguir chamar as rotas /api/*. A Evolution API não passa por aqui (chama
@@ -47,6 +49,8 @@ app.use(adminRouter);
 app.use(assinaturasRouter);
 app.use(indicadoresRouter);
 app.use(publicoRouter);
+app.use(numerosBloqueadosRouter);
+app.use(configuracaoIARouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });

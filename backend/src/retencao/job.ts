@@ -1,5 +1,6 @@
 import { supabase } from '../supabase/client.js';
 import { BARBEARIA_PADRAO } from '../config/barbearia.js';
+import { buscarConfiguracaoIA } from '../config/configuracaoIA.js';
 import { buscarAtendimentosRealizados, buscarClientesComAgendamentoFuturo } from '../indicadores/dados.js';
 import { calcularRecompraPorCliente } from '../indicadores/recompra.js';
 import { precisaLembreteDeRetencao } from './regra.js';
@@ -26,9 +27,9 @@ export interface ResultadoJobRetencao {
 
 export async function rodarJobRetencao(): Promise<ResultadoJobRetencao> {
   const barbeariaId = BARBEARIA_PADRAO.barbeariaId;
-
-  const { data: barbearia } = await supabase.from('barbearias').select('nome').eq('id', barbeariaId).single();
-  const nomeBarbearia = barbearia?.nome ?? 'barbearia';
+  const config = await buscarConfiguracaoIA(barbeariaId);
+  const nomeBarbearia = config?.nomeBarbearia ?? 'barbearia';
+  const janelaDias = config?.retencaoJanelaDias ?? 2;
 
   const [atendimentos, comFuturo] = await Promise.all([
     buscarAtendimentosRealizados(barbeariaId),
@@ -36,7 +37,7 @@ export async function rodarJobRetencao(): Promise<ResultadoJobRetencao> {
   ]);
 
   const status = calcularRecompraPorCliente(atendimentos);
-  const candidatos = status.filter((s) => precisaLembreteDeRetencao(s) && !comFuturo.has(s.clienteId));
+  const candidatos = status.filter((s) => precisaLembreteDeRetencao(s, janelaDias) && !comFuturo.has(s.clienteId));
 
   let enviados = 0;
   let puladosPorCooldown = 0;
@@ -54,7 +55,7 @@ export async function rodarJobRetencao(): Promise<ResultadoJobRetencao> {
       .single();
     if (!cliente) continue;
 
-    const texto = formatarMensagemRetencao(cliente.nome, nomeBarbearia);
+    const texto = formatarMensagemRetencao(cliente.nome, nomeBarbearia, config?.retencaoMensagemTemplate);
 
     try {
       await enviarMensagemTexto(cliente.telefone, texto);

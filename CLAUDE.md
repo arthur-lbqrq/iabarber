@@ -1869,6 +1869,109 @@ barbeiro), painel-web ainda cria agendamento sem aplicar desconto de assinatura
 alterou dado de produção sem seed/teste — tudo dado de teste criado e apagado na
 hora de validar.
 
+### 2026-09-03 — lista de números bloqueados (a IA nunca responde)
+Você perguntou se dava pra programar a IA pra não responder números específicos —
+sim, e implementei como mecanismo de verdade (tabela + endpoint), não um hack.
+Motivação real, já documentada antes: o número conectado ainda é o seu WhatsApp
+pessoal, então contatos pessoais podem acabar acionando a Bento sem querer.
+
+- **Migration** `20260903111331_numeros_bloqueados.sql`: tabela
+  `numeros_bloqueados` (barbearia_id, telefone, motivo, único por
+  barbearia+telefone), RLS no mesmo padrão do resto do schema.
+- **`backend/src/webhook/numerosBloqueados.ts`:** `numeroBloqueado()` — checado no
+  início de `webhook/whatsapp.ts`, **antes** de chamar `gerarResposta` — número
+  bloqueado é ignorado silenciosamente (sem resposta nenhuma, sem gastar chamada da
+  Anthropic).
+- **`backend/src/api/numerosBloqueados.ts`:** `GET/POST /api/numeros-bloqueados` e
+  `DELETE /api/numeros-bloqueados/:id`, protegidas por `exigirBarbeiroLogado` —
+  você gerencia a lista por API (sem tela nova no painel-web ainda, mesmo padrão
+  das últimas etapas — fácil de adicionar depois se quiser).
+- **Testado de ponta a ponta com webhook sintético de verdade:** bloqueei um
+  número de teste, mandei uma mensagem sintética simulando aquele número no
+  webhook → log confirmou "está na lista de bloqueados — ignorando, sem chamar a
+  IA" (não só assumido, **conferido no log que o Claude não foi acionado**);
+  desbloqueei depois e a lista voltou vazia. `tsc --noEmit` limpo, 42 testes
+  continuam passando (sem teste unitário novo aqui — é checagem direta de banco,
+  mesmo padrão de outras rotas simples do projeto).
+
+### 2026-09-03 (continuação) — telinha de números bloqueados no painel-web
+- Nova aba "Configurações" no `painel-web` (`Sidebar.tsx`, `Dashboard.tsx`,
+  `pages/Configuracoes.tsx`) — pensada como o lugar onde outras configurações vão
+  morar depois (ver decisão pendente abaixo sobre a tela de config da IA).
+- `painel-web/src/lib/api.ts` (novo): helper de fetch autenticado igual o que já
+  existia no `painel-admin`, pra não repetir o boilerplate de pegar token de sessão
+  em toda página nova que fala com o backend.
+- Testado com Playwright de verdade: bloqueei um número pela tela, apareceu na
+  lista; desbloqueei, sumiu. `tsc -b` limpo.
+
+### 2026-09-03 (continuação) — tela de configuração da IA (self-service, sem código)
+Você perguntou se dava pra ter uma tela (tipo o painel-admin) pra editar
+configurações da IA direto, sem precisar me pedir — e se bloqueio de números
+funcionaria pra rodar a Bento num número pessoal. Respondi a segunda direto no chat
+(funciona, mas é lista de **bloqueio**, não de permissão — todo contato pessoal
+novo ainda aciona a Bento até você lembrar de bloquear ele também; ofereci a
+alternativa de inverter pra "só responde quem já é cliente cadastrado" se quiser
+proteção mais forte, não implementada ainda). Pra primeira, perguntei quais
+configurações você queria incluir — respondeu "tudo, de forma simplificada", então
+incluí as 4 que eu tinha levantado.
+
+- **Migration** `20260903112944_configuracoes_ia.sql`: 8 colunas novas em
+  `barbearias` (`ia_nome`, `ia_tom_voz`, `retencao_automatica_ativa`,
+  `retencao_mensagem_template`, `retencao_janela_dias`, `atendimento_24h`,
+  `atendimento_hora_inicio`, `atendimento_hora_fim`) — todas com default que
+  preserva o comportamento atual (Bento, 24/7, retenção desligada), então a
+  migration em si não muda nada até alguém editar pela tela.
+- **`backend/src/config/configuracaoIA.ts`** (novo): `buscarConfiguracaoIA()`
+  centraliza a leitura — reaproveitada por `ai/claude.ts` (nome/tom de voz),
+  `webhook/whatsapp.ts` (horário de atendimento), `retencao/job.ts` (template/
+  janela de dias) e `retencao/cron.ts` (liga/desliga), em vez de cada um ler o
+  banco à própria maneira.
+- **Nome/tom de voz configuráveis:** `ai/claude.ts` não tem mais "Bento" fixo no
+  prompt — usa `config.iaNome` em todo lugar (inclusive "se perguntarem seu nome,
+  é ${iaNome}"), e injeta `ia_tom_voz` como instrução extra quando preenchido.
+  **Testado com Claude de verdade:** troquei o nome pra "Testinho" e perguntei "qual
+  seu nome?" — respondeu "Eu sou o Testinho" (não só assumido, conferido com
+  chamada real à API).
+- **Horário de atendimento voltou a existir** (tinha sido removido/apagado numa
+  sessão anterior, a pedido, quando você decidiu ir 24/7) — mas dessa vez
+  **configurável pela tela**, não fixo no código: `webhook/horarioAtendimento.ts`
+  novo (função pura `dentroDoHorario`, testada com 5 casos incluindo os limites
+  exatos), checado no webhook só quando `atendimento_24h = false`.
+- **Retenção automática migrou de variável de ambiente pra configuração no banco:**
+  antes `RETENCAO_AUTOMATICA_ATIVA` no `.env` exigia reiniciar o servidor pra
+  mudar; agora é `barbearias.retencao_automatica_ativa`, e o cron (que sempre roda
+  agora, ao contrário de antes) confere esse valor **a cada disparo diário**, não
+  só no startup — logo, ligar/desligar pela tela funciona na hora. Removida a
+  variável do `env.ts`, `.env` e `.env.example` (obsoleta).
+- **Template de mensagem de retenção personalizável:** `retencao/mensagem.ts`
+  ganhou suporte a um template customizado com os tokens `{nome}`/`{barbearia}` —
+  se a barbearia não configurar nada, usa o texto padrão de antes (mesmo
+  resultado, só que agora passando pelo mesmo mecanismo de substituição de token
+  em vez de um caminho de código separado). Testes atualizados/adicionados pra
+  cobrir os dois casos.
+- **Rotas novas** (`backend/src/api/configuracaoIA.ts`): `GET`/`PATCH
+  /api/configuracao-ia`, protegidas por `exigirBarbeiroLogado`, com lista explícita
+  de campos aceitos (não aceita `update` de coluna arbitrária da tabela
+  `barbearias`).
+- **Tela nova no painel-web:** a aba "Configurações" (já criada pra números
+  bloqueados) ganhou uma seção "Configuração da IA" acima — nome, tom de voz,
+  toggle de 24h (com campos de hora aparecendo só quando desmarcado), toggle de
+  retenção automática, template de mensagem, janela de dias. Um formulário só,
+  botão "Salvar configurações" manda tudo de uma vez.
+  - **Bug de layout achado e corrigido durante o teste visual:** o rótulo com
+    `<code>{nome}</code> e <code>{barbearia}</code>` quebrava em várias linhas
+    horríveis — causa: `label` do formulário é `flex-direction: column`, e cada
+    nó de texto/elemento inline solto vira um item de flex próprio, cada um numa
+    linha. Corrigido envolvendo a descrição inteira num `<span>` só.
+- **Testado de ponta a ponta com Playwright + chamada real:** troquei o nome pela
+  tela, salvei, recarreguei, conferi direto no banco que gravou
+  (`ia_nome: "BentoTeste"`) — revertido depois. Desmarquei "24h" e confirmei que os
+  campos de horário aparecem com os valores certos (08:00/20:00, os defaults da
+  migration).
+- `tsc --noEmit`/`tsc -b` limpos nos dois projetos, **49 testes** no backend
+  (7 novos: 5 de `horarioAtendimento.test.ts` + 2 de `mensagem.test.ts` pro
+  template personalizado).
+
 ### Como usar a stack do Supabase local no dia a dia
 ```bash
 cd /home/art/iabarber/database

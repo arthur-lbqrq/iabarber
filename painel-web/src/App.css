@@ -524,6 +524,62 @@ h3 {
   color: var(--aco);
 }
 
+/* ---------- Formulário de configuração (tela Configurações) ---------- */
+
+.form-config {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 480px;
+}
+
+.form-config label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--cinza-texto);
+}
+
+.form-config label.linha {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-config input,
+.form-config textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie-elevada);
+  color: var(--gelo);
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.form-config input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.form-config code {
+  font-size: 12px;
+  background: var(--superficie-elevada);
+  border: 1px solid var(--borda);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.form-config hr {
+  border: none;
+  border-top: 1px solid var(--borda-interna);
+  margin: 4px 0;
+  width: 100%;
+}
+
 .tabela-scroll {
   width: 100%;
   overflow-x: auto;

@@ -1,8 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import { env } from '../config/env.js';
-import { supabase } from '../supabase/client.js';
 import { BARBEARIA_PADRAO } from '../config/barbearia.js';
+import { buscarConfiguracaoIA, type ConfiguracaoIA } from '../config/configuracaoIA.js';
 import { buscarBarbeiroPorTelefone } from '../tools/buscarBarbeiroPorTelefone.js';
 import { FERRAMENTAS_CLIENTE, FERRAMENTAS_ADMIN, executarFerramenta } from './tools.js';
 import { buscarAssinaturaAtivaPorTelefone, type AssinaturaAtivaInfo } from '../assinaturas/desconto.js';
@@ -63,14 +63,22 @@ pra esse horário: "${saudacaoAtual(agora)}" — use "${saudacaoAtual(agora)}" (
 for natural cumprimentar (início da conversa, por exemplo), sem repetir em toda mensagem.`;
 }
 
-async function montarSystemPromptCliente(nomeBarbearia: string, statusAssinatura: AssinaturaAtivaInfo | null): Promise<string> {
+function linhaTomDeVoz(tomVoz: string | null): string {
+  return tomVoz?.trim() ? `\nInstrução extra de tom de voz definida pelo dono da barbearia: ${tomVoz.trim()}\n` : '';
+}
+
+async function montarSystemPromptCliente(
+  config: ConfiguracaoIA,
+  statusAssinatura: AssinaturaAtivaInfo | null,
+): Promise<string> {
   const agora = new Date();
+  const { iaNome, nomeBarbearia } = config;
 
   const linhaAssinatura = statusAssinatura
     ? `Este cliente TEM assinatura ativa (plano "${statusAssinatura.planoNome}"), com ${statusAssinatura.descontoPercentual}% de desconto nos serviços — o desconto já sai aplicado automaticamente ao agendar, não precisa calcular na mão. Pode mencionar isso se for relevante (ex: se perguntarem sobre preço ou assinatura).`
     : 'Este cliente não tem assinatura ativa hoje. Se perguntar sobre planos/assinatura, diga que a barbearia tem planos disponíveis, mas você ainda não tem como cadastrar uma assinatura nova pelo WhatsApp — é preciso falar com o barbeiro.';
 
-  return `Você é o Bento, assistente de agendamento da ${nomeBarbearia}, respondendo
+  return `Você é o ${iaNome}, assistente de agendamento da ${nomeBarbearia}, respondendo
 pelo WhatsApp. ${contextoDeDataHora(agora)} A barbearia tem dois profissionais: Igor
 e Tinho.
 
@@ -78,8 +86,8 @@ ${linhaAssinatura}
 
 Tom de voz: direto, caloroso, confiável. Chame a pessoa pelo primeiro nome quando souber.
 Frases curtas. Uma pergunta por mensagem. Nunca diga que é um robô, mas também nunca finja
-que não é se perguntarem. Se perguntarem seu nome, é Bento.
-
+que não é se perguntarem. Se perguntarem seu nome, é ${iaNome}.
+${linhaTomDeVoz(config.iaTomVoz)}
 Regras:
 - Use "consultar_horarios_disponiveis" antes de sugerir ou confirmar qualquer horário —
   nunca invente horário livre.
@@ -97,15 +105,16 @@ Regras:
   suficiente pra uma mensagem de WhatsApp.`;
 }
 
-function montarSystemPromptAdmin(nomeBarbearia: string, nomeAdmin: string): string {
+function montarSystemPromptAdmin(config: ConfiguracaoIA, nomeAdmin: string): string {
   const agora = new Date();
+  const { iaNome, nomeBarbearia } = config;
 
-  return `Você é o Bento, falando agora com ${nomeAdmin}, que é um dos barbeiros/admins
+  return `Você é o ${iaNome}, falando agora com ${nomeAdmin}, que é um dos barbeiros/admins
 da ${nomeBarbearia} — não um cliente. ${contextoDeDataHora(agora)}
 
 Neste modo você ajuda a gerenciar a barbearia: ver a agenda completa, mudar horário de
 funcionamento, mudar dados ou preço de um serviço.
-
+${linhaTomDeVoz(config.iaTomVoz)}
 Regras importantes:
 - Ações de mudança (atualizar_horario_funcionamento, atualizar_servico,
   atualizar_valor_servico) são sensíveis. NUNCA chame essas ferramentas com
@@ -124,21 +133,23 @@ export async function gerarResposta(
 ): Promise<string> {
   const { barbeariaId } = BARBEARIA_PADRAO;
 
-  const { data: barbearia } = await supabase
-    .from('barbearias')
-    .select('nome')
-    .eq('id', barbeariaId)
-    .single();
-  const nomeBarbearia = barbearia?.nome ?? 'barbearia';
+  const config = (await buscarConfiguracaoIA(barbeariaId)) ?? {
+    nomeBarbearia: 'barbearia',
+    iaNome: 'Bento',
+    iaTomVoz: null,
+    retencaoAutomaticaAtiva: false,
+    retencaoMensagemTemplate: null,
+    retencaoJanelaDias: 2,
+    atendimento24h: true,
+    atendimentoHoraInicio: '08:00',
+    atendimentoHoraFim: '20:00',
+  };
 
   const admin = await buscarBarbeiroPorTelefone(barbeariaId, telefoneRemetente);
 
   const system = admin
-    ? montarSystemPromptAdmin(nomeBarbearia, admin.nome)
-    : await montarSystemPromptCliente(
-        nomeBarbearia,
-        await buscarAssinaturaAtivaPorTelefone(barbeariaId, telefoneRemetente),
-      );
+    ? montarSystemPromptAdmin(config, admin.nome)
+    : await montarSystemPromptCliente(config, await buscarAssinaturaAtivaPorTelefone(barbeariaId, telefoneRemetente));
 
   const ferramentas = admin ? FERRAMENTAS_ADMIN : FERRAMENTAS_CLIENTE;
   const contexto = admin

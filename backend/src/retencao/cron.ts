@@ -1,17 +1,21 @@
 import cron from 'node-cron';
-import { env } from '../config/env.js';
+import { BARBEARIA_PADRAO } from '../config/barbearia.js';
+import { buscarConfiguracaoIA } from '../config/configuracaoIA.js';
 import { rodarJobRetencao } from './job.js';
 
-// Desligado por padrão (env.retencaoAutomaticaAtiva) — ver comentário em config/env.ts
-// sobre por que isso exige ativação explícita, não fica ligado só por existir.
+// O cron em si sempre roda — quem decide se manda mensagem de verdade é o valor de
+// `retencao_automatica_ativa` no banco (tela de Configurações), checado a cada
+// disparo. Assim ligar/desligar pela tela funciona na hora, sem reiniciar o backend
+// (diferente de antes, quando isso era uma variável de ambiente lida só no startup).
 export function iniciarCronRetencao(): void {
-  if (!env.retencaoAutomaticaAtiva) {
-    console.log('[retencao] automação desligada (RETENCAO_AUTOMATICA_ATIVA != true) — nenhum cron agendado.');
-    return;
-  }
-
   // Todo dia às 10h, horário do processo — depois do início do expediente, não de madrugada.
   cron.schedule('0 10 * * *', async () => {
+    const config = await buscarConfiguracaoIA(BARBEARIA_PADRAO.barbeariaId);
+    if (!config?.retencaoAutomaticaAtiva) {
+      console.log('[retencao] automação desligada na configuração da barbearia — pulando execução.');
+      return;
+    }
+
     console.log('[retencao] iniciando execução agendada...');
     try {
       const resultado = await rodarJobRetencao();
@@ -21,5 +25,5 @@ export function iniciarCronRetencao(): void {
     }
   });
 
-  console.log('[retencao] cron agendado — roda todo dia às 10h.');
+  console.log('[retencao] cron agendado — roda todo dia às 10h (checa a configuração da barbearia antes de disparar).');
 }

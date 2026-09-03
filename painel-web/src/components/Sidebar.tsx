@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Logo } from './Logo';
 
-export type Aba = 'agenda' | 'conversas' | 'clientes' | 'equipe' | 'servicos' | 'horarios';
+export type Aba =
+  | 'agenda'
+  | 'conversas'
+  | 'clientes'
+  | 'equipe'
+  | 'servicos'
+  | 'horarios'
+  | 'configuracoes';
 
 const ITENS: { aba: Aba; rotulo: string }[] = [
   { aba: 'agenda', rotulo: 'Agenda' },
@@ -11,6 +18,7 @@ const ITENS: { aba: Aba; rotulo: string }[] = [
   { aba: 'equipe', rotulo: 'Equipe' },
   { aba: 'servicos', rotulo: 'Serviços' },
   { aba: 'horarios', rotulo: 'Horários' },
+  { aba: 'configuracoes', rotulo: 'Configurações' },
 ];
 
 export function Sidebar({ aba, onMudarAba }: { aba: Aba; onMudarAba: (aba: Aba) => void }) {
